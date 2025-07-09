@@ -5,31 +5,39 @@ import com.deneme.influencerinsight.dto.requests.RegisterRequest;
 import com.deneme.influencerinsight.dto.responses.JwtResponse;
 import com.deneme.influencerinsight.dto.responses.RegisterResponse;
 import com.deneme.influencerinsight.model.Role;
+import com.deneme.influencerinsight.model.RoleType;
 import com.deneme.influencerinsight.model.User;
+import com.deneme.influencerinsight.repository.RoleRepository;
 import com.deneme.influencerinsight.repository.UserRepository;
 import com.deneme.influencerinsight.security.JwtUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Set;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;  // Rol repo eklendi
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
     public AuthController(UserRepository userRepository,
+                          RoleRepository roleRepository,
                           PasswordEncoder passwordEncoder,
                           AuthenticationManager authenticationManager,
                           JwtUtil jwtUtil) {
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
@@ -41,18 +49,19 @@ public class AuthController {
             return ResponseEntity.badRequest().body(new RegisterResponse("Kullanıcı zaten mevcut!"));
         }
 
+        Role userRole = roleRepository.findByRoleType(RoleType.ROLE_USER)
+                .orElseThrow(() -> new RuntimeException("ROLE_USER rolü bulunamadı"));
+
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
-                .roles(Set.of(Role.ROLE_USER))
+                .role(userRole)
                 .build();
 
         userRepository.save(user);
         return ResponseEntity.ok(new RegisterResponse("Kullanıcı kaydedildi"));
-
     }
-
 
     // TODO: Geçici eklendi daha sonra silinecek !!!
     @PostMapping("/register/admin")
@@ -61,16 +70,18 @@ public class AuthController {
             return ResponseEntity.badRequest().body(new RegisterResponse("Kullanıcı zaten mevcut!"));
         }
 
+        Role adminRole = roleRepository.findByRoleType(RoleType.ROLE_ADMIN)
+                .orElseThrow(() -> new RuntimeException("ROLE_ADMIN rolü bulunamadı"));
+
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
-                .roles(Set.of(Role.ROLE_ADMIN))
+                .role(adminRole)
                 .build();
 
         userRepository.save(user);
-        return ResponseEntity.ok(new RegisterResponse("Kullanıcı kaydedildi"));
-
+        return ResponseEntity.ok(new RegisterResponse("Admin kullanıcı kaydedildi"));
     }
 
     @PostMapping("/login")
@@ -82,5 +93,5 @@ public class AuthController {
         String token = jwtUtil.generateToken(request.getUsername());
         return ResponseEntity.ok(new JwtResponse(token));
     }
-
 }
+

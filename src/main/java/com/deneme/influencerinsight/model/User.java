@@ -3,15 +3,16 @@ package com.deneme.influencerinsight.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
 import java.util.Set;
 
 @Entity
+@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "users")
 public class User {
 
     @Id
@@ -25,7 +26,7 @@ public class User {
 
     private String fullName;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @Enumerated(EnumType.STRING)
-    private Set<Role> roles;
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)  // role_id zorunlu
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 }
