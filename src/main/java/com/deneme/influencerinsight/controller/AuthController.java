@@ -63,27 +63,6 @@ public class AuthController {
         return ResponseEntity.ok(new RegisterResponse("Kullanıcı kaydedildi"));
     }
 
-    // TODO: Geçici eklendi daha sonra silinecek !!!
-    @PostMapping("/register/admin")
-    public ResponseEntity<RegisterResponse> registerAdmin(@RequestBody RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            return ResponseEntity.badRequest().body(new RegisterResponse("Kullanıcı zaten mevcut!"));
-        }
-
-        Role adminRole = roleRepository.findByRoleType(RoleType.ROLE_ADMIN)
-                .orElseThrow(() -> new RuntimeException("ROLE_ADMIN rolü bulunamadı"));
-
-        User user = User.builder()
-                .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
-                .role(adminRole)
-                .build();
-
-        userRepository.save(user);
-        return ResponseEntity.ok(new RegisterResponse("Admin kullanıcı kaydedildi"));
-    }
-
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest request) {
         authenticationManager.authenticate(
