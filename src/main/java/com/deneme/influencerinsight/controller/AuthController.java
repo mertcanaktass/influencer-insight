@@ -9,6 +9,8 @@ import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.repository.RoleRepository;
 import com.deneme.influencerinsight.repository.UserRepository;
 import com.deneme.influencerinsight.security.JwtUtil;
+import com.deneme.influencerinsight.service.AuthService;
+import com.deneme.influencerinsight.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,37 +32,31 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+    private final UserService userService;
 
     public AuthController(UserRepository userRepository,
                           RoleRepository roleRepository,
                           PasswordEncoder passwordEncoder,
                           AuthenticationManager authenticationManager,
                           JwtUtil jwtUtil,
-                          UserDetailsService userDetailsService) {
+                          UserDetailsService userDetailsService,
+                          UserService userService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.userService = userService;
     }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUser().getUsername())) {
-            return ResponseEntity.badRequest().body("User already exists!");
+        try {
+            this.userService.register(request);
+        } catch (Exception e) {
+            ResponseEntity.badRequest().body(e.getMessage());
         }
-
-        RoleEntity userRoleEntity = roleRepository.findByRoleType(RoleType.ROLE_USER)
-                .orElseThrow(() -> new RuntimeException("ROLE_USER rolü bulunamadı"));
-
-        UserEntity userEntity = UserEntity.builder()
-                .username(request.getUser().getUsername())
-                .password(passwordEncoder.encode(request.getUser().getPassword()))
-                .roleEntity(userRoleEntity)
-                .build();
-
-        userRepository.save(userEntity);
         return ResponseEntity.ok("User registered!");
     }
 

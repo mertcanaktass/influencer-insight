@@ -32,6 +32,35 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll();
     }
 
+    @Override
+    public boolean existsByUsername(String username) {
+        return false;
+    }
+
+    @Override
+    public void saveUser(UserEntity userEntity) {
+        this.userRepository.save(userEntity);
+
+    }
+
+    @Override
+    public void register(RegisterRequest registerRequest) throws Exception {
+        if (existsByUsername(registerRequest.getUser().getUsername())) {
+            throw new Exception("User already exist!");
+        }
+
+        RoleEntity userRoleEntity = roleService.getRoleByType(RoleType.ROLE_USER)
+                .orElseThrow(() -> new RuntimeException("ROLE_USER rolü bulunamadı"));
+
+        UserEntity userEntity = UserEntity.builder()
+                .username(registerRequest.getUser().getUsername())
+                .password(securityConfig.passwordEncoder().encode(registerRequest.getUser().getPassword()))
+                .roleEntity(userRoleEntity)
+                .build();
+
+        saveUser(userEntity);
+    }
+
     public void registerAdminUser(RegisterRequest request) throws Exception {
         if (userRepository.existsByUsername(request.getUser().getUsername())) {
             throw new Exception("User Already Exist!");

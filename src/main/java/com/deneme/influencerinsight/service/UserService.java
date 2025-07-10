@@ -9,5 +9,11 @@ public interface UserService {
 
     List<UserEntity> getAllUsers();
 
+    boolean existsByUsername(String username);
+
+    void saveUser(UserEntity userEntity);
+
     void registerAdminUser(RegisterRequest request) throws Exception;
+
+    void register(RegisterRequest registerRequest) throws Exception;
 }
