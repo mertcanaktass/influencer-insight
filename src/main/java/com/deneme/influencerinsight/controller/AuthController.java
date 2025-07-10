@@ -3,10 +3,9 @@ package com.deneme.influencerinsight.controller;
 import com.deneme.influencerinsight.dto.requests.LoginRequest;
 import com.deneme.influencerinsight.dto.requests.RegisterRequest;
 import com.deneme.influencerinsight.dto.responses.JwtResponse;
-import com.deneme.influencerinsight.dto.responses.RegisterResponse;
-import com.deneme.influencerinsight.model.Role;
-import com.deneme.influencerinsight.model.RoleType;
-import com.deneme.influencerinsight.model.User;
+import com.deneme.influencerinsight.enums.RoleType;
+import com.deneme.influencerinsight.model.RoleEntity;
+import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.repository.RoleRepository;
 import com.deneme.influencerinsight.repository.UserRepository;
 import com.deneme.influencerinsight.security.JwtUtil;
@@ -47,23 +46,23 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            return ResponseEntity.badRequest().body(new RegisterResponse("Kullanıcı zaten mevcut!"));
+            return ResponseEntity.badRequest().body("User already exists!");
         }
 
-        Role userRole = roleRepository.findByRoleType(RoleType.ROLE_USER)
+        RoleEntity userRoleEntity = roleRepository.findByRoleType(RoleType.ROLE_USER)
                 .orElseThrow(() -> new RuntimeException("ROLE_USER rolü bulunamadı"));
 
-        User user = User.builder()
+        UserEntity userEntity = UserEntity.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
-                .role(userRole)
+                .roleEntity(userRoleEntity)
                 .build();
 
-        userRepository.save(user);
-        return ResponseEntity.ok(new RegisterResponse("Kullanıcı kaydedildi"));
+        userRepository.save(userEntity);
+        return ResponseEntity.ok("User registered!");
     }
 
     @PostMapping("/login")

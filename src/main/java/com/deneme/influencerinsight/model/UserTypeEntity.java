@@ -9,22 +9,12 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Influencer {
+public class UserTypeEntity extends AbstractEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-
-    private String surname;
-
-    @Column(unique = true)
-    private String email;
-
-    private String platform; // INSTAGRAM, YOUTUBE, etc.
-
-    private String bio;
-
-    private String profileUrl;
+    @Column(name = "user_type_desc")
+    private String userTypeDesc;
 }

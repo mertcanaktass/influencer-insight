@@ -1,7 +1,6 @@
-package com.deneme.influencerinsight.model;
+package com.deneme.influencerinsight.enums;
 
 public enum RoleType {
     ROLE_USER,
-    ROLE_INFLUENCER,
     ROLE_ADMIN
 }
