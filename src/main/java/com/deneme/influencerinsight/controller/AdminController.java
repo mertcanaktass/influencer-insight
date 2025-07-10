@@ -1,14 +1,9 @@
 package com.deneme.influencerinsight.controller;
 
-import com.deneme.influencerinsight.dto.requests.RegisterRequest;
+import com.deneme.influencerinsight.rest.requests.RegisterRequest;
 import com.deneme.influencerinsight.model.UserEntity;
-import com.deneme.influencerinsight.repository.RoleRepository;
-import com.deneme.influencerinsight.repository.UserRepository;
-import com.deneme.influencerinsight.security.JwtUtil;
 import com.deneme.influencerinsight.service.UserService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

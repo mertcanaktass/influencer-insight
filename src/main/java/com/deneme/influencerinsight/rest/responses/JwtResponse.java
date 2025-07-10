@@ -1,4 +1,4 @@
-package com.deneme.influencerinsight.dto.responses;
+package com.deneme.influencerinsight.rest.responses;
 
 import lombok.Data;
 

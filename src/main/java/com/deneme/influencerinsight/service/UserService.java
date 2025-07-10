@@ -1,6 +1,6 @@
 package com.deneme.influencerinsight.service;
 
-import com.deneme.influencerinsight.dto.requests.RegisterRequest;
+import com.deneme.influencerinsight.rest.requests.RegisterRequest;
 import com.deneme.influencerinsight.model.UserEntity;
 
 import java.util.List;

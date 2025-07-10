@@ -1,8 +1,8 @@
 package com.deneme.influencerinsight.controller;
 
-import com.deneme.influencerinsight.dto.requests.LoginRequest;
-import com.deneme.influencerinsight.dto.requests.RegisterRequest;
-import com.deneme.influencerinsight.dto.responses.JwtResponse;
+import com.deneme.influencerinsight.rest.requests.LoginRequest;
+import com.deneme.influencerinsight.rest.requests.RegisterRequest;
+import com.deneme.influencerinsight.rest.responses.JwtResponse;
 import com.deneme.influencerinsight.enums.RoleType;
 import com.deneme.influencerinsight.model.RoleEntity;
 import com.deneme.influencerinsight.model.UserEntity;
@@ -47,7 +47,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsername(request.getUser().getUsername())) {
             return ResponseEntity.badRequest().body("User already exists!");
         }
 
@@ -55,9 +55,8 @@ public class AuthController {
                 .orElseThrow(() -> new RuntimeException("ROLE_USER rolü bulunamadı"));
 
         UserEntity userEntity = UserEntity.builder()
-                .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
+                .username(request.getUser().getUsername())
+                .password(passwordEncoder.encode(request.getUser().getPassword()))
                 .roleEntity(userRoleEntity)
                 .build();
 
