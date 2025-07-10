@@ -16,12 +16,14 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column(name = "username", unique = true)
     private String username;
 
+    @Column(name = "password")
     private String password;
 
-    private String fullName;
+    @Column(name = "email")
+    private String email;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "role_id", nullable = false)

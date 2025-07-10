@@ -10,5 +10,11 @@ public class UserRoleEntity extends AbstractEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Column(name = "user_id")
+  private String userId;
+
+  @Column(name = "role_id")
+  private String roleId;
+
 
 }

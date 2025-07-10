@@ -35,7 +35,6 @@ public class UserServiceImpl implements UserService {
     public void registerAdminUser(RegisterRequest request) throws Exception {
         if (userRepository.existsByUsername(request.getUser().getUsername())) {
             throw new Exception("User Already Exist!");
-            //ResponseEntity.badRequest().body(new RegisterResponse("Kullanıcı zaten mevcut!"));
         }
 
         RoleEntity adminRoleEntity = this.roleService.getRoleByType(RoleType.ROLE_ADMIN)
