@@ -26,7 +26,7 @@ public class User {
 
     private String fullName;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)  // role_id zorunlu
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 }
