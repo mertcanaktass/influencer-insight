@@ -1,6 +1,7 @@
 package com.deneme.influencerinsight.security;
 
 import com.deneme.influencerinsight.service.CustomUserDetailsService;
+import com.deneme.influencerinsight.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,10 +23,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, CustomUserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(
+            JwtUtil jwtUtil,
+            CustomUserDetailsService userDetailsService,
+            TokenBlacklistService tokenBlacklistService) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
@@ -44,6 +50,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         token = authHeader.substring(7);
+
+        if (tokenBlacklistService.isTokenBlacklisted(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         try {
             username = jwtUtil.extractUsername(token);

@@ -1,80 +1,75 @@
 package com.deneme.influencerinsight.service.impl;
 
 import com.deneme.influencerinsight.config.SecurityConfig;
+import com.deneme.influencerinsight.dto.RoleDto;
+import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.RoleType;
-import com.deneme.influencerinsight.model.RoleEntity;
+import com.deneme.influencerinsight.mapper.UserMapper;
 import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.repository.UserRepository;
+import com.deneme.influencerinsight.rest.requests.RegisterAdminRequest;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
+import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.service.RoleService;
 import com.deneme.influencerinsight.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
 
-    @Autowired
-    private RoleService roleService;
-    @Autowired
-    private SecurityConfig securityConfig;
-
     private final UserRepository userRepository;
+    private final SecurityConfig securityConfig;
+    private final RoleService roleService;
 
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository,
+                           SecurityConfig securityConfig,
+                           RoleService roleService) {
         this.userRepository = userRepository;
+        this.securityConfig = securityConfig;
+        this.roleService = roleService;
     }
 
     @Override
-    public List<UserEntity> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserResponse> getAllUsers() {
+        List<UserEntity> userEntities = userRepository.findAll();
+        return userEntities.stream()
+                .map(UserMapper::entityToUserResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
     public boolean existsByUsername(String username) {
-        return false;
+        return userRepository.existsByUsername(username);
     }
 
     @Override
-    public void saveUser(UserEntity userEntity) {
-        this.userRepository.save(userEntity);
-
+    public void saveUser(UserDto userDto, RoleDto roleDto) {
+        UserEntity userEntity = UserMapper.userDtoToEntity(userDto, securityConfig.passwordEncoder().encode(userDto.getPassword()), roleDto);
+        userRepository.save(userEntity);
     }
 
     @Override
     public void register(RegisterRequest registerRequest) throws Exception {
-        if (existsByUsername(registerRequest.getUser().getUsername())) {
-            throw new Exception("User already exist!");
+        UserDto userDto = registerRequest.getUserDto();
+        if (existsByUsername(userDto.getUsername())) {
+            throw new Exception("User already exists!");
         }
+        RoleDto roleDto = roleService.getRoleByType(RoleType.ROLE_USER);
 
-        RoleEntity userRoleEntity = roleService.getRoleByType(RoleType.ROLE_USER)
-                .orElseThrow(() -> new RuntimeException("ROLE_USER rolü bulunamadı"));
-
-        UserEntity userEntity = UserEntity.builder()
-                .username(registerRequest.getUser().getUsername())
-                .password(securityConfig.passwordEncoder().encode(registerRequest.getUser().getPassword()))
-                .roleEntity(userRoleEntity)
-                .build();
-
-        saveUser(userEntity);
+        saveUser(userDto, roleDto);
     }
 
-    public void registerAdminUser(RegisterRequest request) throws Exception {
-        if (userRepository.existsByUsername(request.getUser().getUsername())) {
-            throw new Exception("User Already Exist!");
+    @Override
+    public void registerAdminUser(RegisterAdminRequest request) throws Exception {
+        UserDto userDto = request.getUserDto();
+        if (existsByUsername(userDto.getUsername())) {
+            throw new Exception("User already exists!");
         }
+        RoleDto adminRoleDtoEntity = this.roleService.getRoleByType(RoleType.ROLE_ADMIN);
 
-        RoleEntity adminRoleEntity = this.roleService.getRoleByType(RoleType.ROLE_ADMIN)
-                .orElseThrow(() -> new RuntimeException("ROLE_ADMIN rolü bulunamadı"));
-
-        UserEntity userEntity = UserEntity.builder()
-                .username(request.getUser().getUsername())
-                .password(securityConfig.passwordEncoder().encode(request.getUser().getPassword()))
-                .roleEntity(adminRoleEntity)
-                .build();
-
-        userRepository.save(userEntity);
+        saveUser(userDto, adminRoleDtoEntity);
     }
 }

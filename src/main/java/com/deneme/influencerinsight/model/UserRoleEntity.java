@@ -6,15 +6,13 @@ import jakarta.persistence.*;
 @Table(name = "user_role")
 public class UserRoleEntity extends AbstractEntity {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @Column(name = "user_id")
-  private String userId;
+    @Column(name = "user_id")
+    private String userId;
 
-  @Column(name = "role_id")
-  private String roleId;
-
-
+    @Column(name = "role_id")
+    private String roleId;
 }

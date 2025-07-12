@@ -21,14 +21,23 @@ public class JwtUtil {
 
     private static final long JWT_EXPIRATION_MS = 86400000; // 24 saat
 
-    public String generateToken(UserDetails userDetails) {
+    public String generateAccessToken(UserDetails userDetails) {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
                 .claim("authorities", userDetails.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)
                         .toList())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION_MS))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15)) // 15 dk
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String generateRefreshToken(UserDetails userDetails) {
+        return Jwts.builder()
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 7)) // 7 gün
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -44,7 +53,7 @@ public class JwtUtil {
         return username.equals(extractUsername(token)) && !isTokenExpired(token);
     }
 
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         Date expiration = Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
@@ -61,5 +70,14 @@ public class JwtUtil {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    public Date getExpirationDate(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.getExpiration();
     }
 }
