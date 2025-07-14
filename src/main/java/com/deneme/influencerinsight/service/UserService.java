@@ -7,6 +7,7 @@ import com.deneme.influencerinsight.rest.requests.RegisterRequest;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface UserService {
     List<UserResponse> getAllUsers();
@@ -18,4 +19,6 @@ public interface UserService {
     void registerAdminUser(RegisterAdminRequest request) throws Exception;
 
     void register(RegisterRequest registerRequest) throws Exception;
+
+    Optional<UserDto> inquireUser(Long userId);
 }

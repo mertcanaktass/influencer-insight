@@ -1,9 +1,15 @@
 package com.deneme.influencerinsight.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.MappedSuperclass;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Date;
 
+@MappedSuperclass
+@Getter
+@Setter
 public abstract class AbstractEntity {
 
     @Column(name = "create_user_id")
@@ -17,5 +23,8 @@ public abstract class AbstractEntity {
 
     @Column(name = "update_date")
     private Date updateDate;
+
+    @Column(name = "status")
+    private Integer status;
 
 }

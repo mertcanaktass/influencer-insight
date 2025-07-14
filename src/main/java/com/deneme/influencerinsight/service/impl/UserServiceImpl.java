@@ -15,6 +15,8 @@ import com.deneme.influencerinsight.service.UserService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -71,5 +73,16 @@ public class UserServiceImpl implements UserService {
         RoleDto adminRoleDtoEntity = this.roleService.getRoleByType(RoleType.ROLE_ADMIN);
 
         saveUser(userDto, adminRoleDtoEntity);
+    }
+
+    @Override
+    public Optional<UserDto> inquireUser(Long userId) {
+        return this.userRepository.findById(userId).stream().map(user -> {
+            try {
+                return UserMapper.userEntityToUserDto(user);
+            } catch (NoSuchElementException e) {
+                throw new RuntimeException(e);
+            }
+        }).findAny();
     }
 }
