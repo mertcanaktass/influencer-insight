@@ -6,5 +6,4 @@ import lombok.Data;
 @Data
 public class RegisterRequest {
     private UserDto userDto;
-    private String email;
 }

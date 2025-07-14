@@ -1,25 +1,30 @@
 package com.deneme.influencerinsight.mapper;
 
 import com.deneme.influencerinsight.dto.RoleDto;
+import com.deneme.influencerinsight.enums.GeneralEnums;
 import com.deneme.influencerinsight.model.RoleEntity;
 
 public class RoleMapper {
+
+    private RoleMapper() {
+        throw new UnsupportedOperationException("Utility class");
+    }
 
     public static RoleDto entityToRole(RoleEntity entity) {
         if (entity == null) return null;
         return RoleDto.builder()
                 .id(entity.getId())
                 .roleType(entity.getRoleType())
-                .status(entity.getStatus())
+                .status(GeneralEnums.Status.getStatusById(entity.getStatus()))
                 .build();
     }
 
-    public static RoleEntity roleToEntity(RoleDto dto) {
-        if (dto == null) return null;
+    public static RoleEntity roleToEntity(RoleDto roleDto) {
+        if (roleDto == null) return null;
         return RoleEntity.builder()
-                .id(dto.getId())
-                .roleType(dto.getRoleType())
-                .status(dto.getStatus())
+                .id(roleDto.getId())
+                .roleType(roleDto.getRoleType())
+                .status(GeneralEnums.Status.getIdByStatus(roleDto.getStatus()))
                 .build();
     }
 }

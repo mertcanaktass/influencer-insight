@@ -32,5 +32,14 @@ public class GeneralEnums {
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Invalid Status ID: " + id));
         }
+
+        public static Integer getIdByStatus(String status) {
+            return Arrays.stream(Status.values())
+                    .filter(s -> s.getStatus().equalsIgnoreCase(status))
+                    .map(Status::getId)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid Status: " + status));
+        }
+
     }
 }

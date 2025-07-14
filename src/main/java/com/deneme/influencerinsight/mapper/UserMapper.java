@@ -13,6 +13,10 @@ import static com.deneme.influencerinsight.mapper.RoleMapper.roleToEntity;
 
 public class UserMapper {
 
+    private UserMapper() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
     public static UserResponse entityToUserResponse(UserEntity entity) {
         if (entity == null) return null;
         return UserResponse.builder()

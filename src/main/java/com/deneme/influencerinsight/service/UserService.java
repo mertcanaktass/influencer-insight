@@ -2,7 +2,6 @@ package com.deneme.influencerinsight.service;
 
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
-import com.deneme.influencerinsight.rest.requests.RegisterAdminRequest;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 
@@ -16,9 +15,9 @@ public interface UserService {
 
     void saveUser(UserDto userDto, RoleDto roleDto);
 
-    void registerAdminUser(RegisterAdminRequest request) throws Exception;
+    void registerAdminUser(RegisterRequest request);
 
-    void register(RegisterRequest registerRequest) throws Exception;
+    void register(RegisterRequest registerRequest);
 
     Optional<UserDto> inquireUser(Long userId);
 }

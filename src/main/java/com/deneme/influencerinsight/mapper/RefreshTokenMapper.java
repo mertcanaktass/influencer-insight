@@ -5,6 +5,10 @@ import com.deneme.influencerinsight.model.RefreshTokenEntity;
 
 public class RefreshTokenMapper {
 
+    private RefreshTokenMapper() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
     public static RefreshTokenDto entityToRefreshTokenDto(RefreshTokenEntity entity) {
         if (entity == null) return null;
         return RefreshTokenDto.builder()

@@ -12,5 +12,4 @@ public class RoleDto extends AbstractDto {
     private Long id;
     private String roleName;
     private RoleType roleType;
-    private Integer status;
 }
