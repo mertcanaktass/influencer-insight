@@ -5,6 +5,7 @@ import com.deneme.influencerinsight.rest.requests.RegisterRequest;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,13 +15,10 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/admin")
+@RequiredArgsConstructor
 public class AdminController {
 
     private final UserService userService;
-
-    public AdminController(UserService userService) {
-        this.userService = userService;
-    }
 
     @PostMapping("/register")
     @Operation(summary = "Register Admin",

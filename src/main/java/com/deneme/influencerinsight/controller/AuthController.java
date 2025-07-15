@@ -8,6 +8,7 @@ import com.deneme.influencerinsight.security.JwtUtil;
 import com.deneme.influencerinsight.service.TokenBlacklistService;
 import com.deneme.influencerinsight.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,6 +24,7 @@ import java.util.Date;
 
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -30,18 +32,6 @@ public class AuthController {
     private final UserDetailsService userDetailsService;
     private final UserService userService;
     private final TokenBlacklistService tokenBlacklistService;
-
-    public AuthController(AuthenticationManager authenticationManager,
-                          JwtUtil jwtUtil,
-                          UserDetailsService userDetailsService,
-                          UserService userService,
-                          TokenBlacklistService tokenBlacklistService) {
-        this.authenticationManager = authenticationManager;
-        this.jwtUtil = jwtUtil;
-        this.userDetailsService = userDetailsService;
-        this.userService = userService;
-        this.tokenBlacklistService = tokenBlacklistService;
-    }
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
