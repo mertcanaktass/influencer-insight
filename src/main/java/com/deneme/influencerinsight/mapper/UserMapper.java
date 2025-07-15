@@ -17,7 +17,7 @@ public class UserMapper {
         throw new UnsupportedOperationException("Utility class");
     }
 
-    public static UserResponse entityToUserResponse(UserEntity entity) {
+    public static UserResponse userEntityToUserResponse(UserEntity entity) {
         if (entity == null) return null;
         return UserResponse.builder()
                 .id(entity.getId())
@@ -26,14 +26,17 @@ public class UserMapper {
                 .build();
     }
 
-    public static UserEntity userDtoToEntity(UserDto dto, String hashedPassword, RoleDto roleDto) {
-        if (dto == null) return null;
+    public static UserEntity userDtoToEntity(UserDto userDto, String hashedPassword, RoleDto roleDto) {
+        if (userDto == null) return null;
         return UserEntity.builder()
-                .username(dto.getUsername())
-                .password(hashedPassword != null ? hashedPassword : dto.getPassword())
-                .email(dto.getEmail())
+                .username(userDto.getUsername())
+                .password(hashedPassword != null ? hashedPassword : userDto.getPassword())
+                .email(userDto.getEmail())
+                .emailVerified(Boolean.TRUE.equals(userDto.getEmailVerified()))
+                .verificationToken(userDto.getVerificationToken())
                 .roleEntity(roleToEntity(roleDto))
                 .build();
+
     }
 
     public static UserDto userEntityToUserDto(UserEntity userEntity) {

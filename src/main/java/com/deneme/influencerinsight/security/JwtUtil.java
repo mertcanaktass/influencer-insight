@@ -19,8 +19,6 @@ public class JwtUtil {
 
     private final SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY_BASE64));
 
-    private static final long JWT_EXPIRATION_MS = 86400000; // 24 saat
-
     public String generateAccessToken(UserDetails userDetails) {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())

@@ -28,4 +28,10 @@ public class UserEntity extends AbstractEntity {
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "role_id", nullable = false)
     private RoleEntity roleEntity;
+
+    @Column(name = "email_verified")
+    private Boolean emailVerified;
+
+    @Column(name = "verification_token")
+    private String verificationToken;
 }

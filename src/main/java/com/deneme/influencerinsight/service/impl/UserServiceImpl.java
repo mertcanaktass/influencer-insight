@@ -8,35 +8,50 @@ import com.deneme.influencerinsight.exception.UserAlreadyExistsException;
 import com.deneme.influencerinsight.mapper.UserMapper;
 import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.repository.UserRepository;
+import com.deneme.influencerinsight.rest.requests.LoginRequest;
+import com.deneme.influencerinsight.rest.requests.PasswordChangeRequest;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
+import com.deneme.influencerinsight.rest.requests.TokenRefreshRequest;
+import com.deneme.influencerinsight.rest.responses.JwtResponse;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
+import com.deneme.influencerinsight.security.JwtUtil;
+import com.deneme.influencerinsight.service.EmailService;
 import com.deneme.influencerinsight.service.RoleService;
+import com.deneme.influencerinsight.service.TokenBlacklistService;
 import com.deneme.influencerinsight.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final SecurityConfig securityConfig;
     private final RoleService roleService;
-
-    public UserServiceImpl(UserRepository userRepository,
-                           SecurityConfig securityConfig,
-                           RoleService roleService) {
-        this.userRepository = userRepository;
-        this.securityConfig = securityConfig;
-        this.roleService = roleService;
-    }
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final UserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     public List<UserResponse> getAllUsers() {
         List<UserEntity> userEntities = userRepository.findAll();
         return userEntities.stream()
-                .map(UserMapper::entityToUserResponse)
+                .map(UserMapper::userEntityToUserResponse)
                 .toList();
     }
 
@@ -52,29 +67,134 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void register(RegisterRequest registerRequest) {
-        UserDto userDto = registerRequest.getUserDto();
-        if (existsByUsername(userDto.getUsername())) {
-            throw new UserAlreadyExistsException("Username already exists: " + userDto.getUsername());
+    public void register(RegisterRequest request) {
+        if (existsByUsername(request.getUsername())) {
+            throw new UserAlreadyExistsException("Username already exists: " + request.getUsername());
         }
+
+        String token = UUID.randomUUID().toString();
+
+        UserDto userDto = UserDto.builder()
+                .username(request.getUsername())
+                .password(request.getPassword())
+                .email(request.getEmail())
+                .emailVerified(false)
+                .verificationToken(token)
+                .build();
+
         RoleDto roleDto = roleService.getRoleByType(RoleType.ROLE_USER);
+
+        emailService.sendVerificationEmail(userDto.getEmail(), token);
         saveUser(userDto, roleDto);
     }
 
     @Override
     public void registerAdminUser(RegisterRequest request) {
-        UserDto userDto = request.getUserDto();
-        if (existsByUsername(userDto.getUsername())) {
-            throw new UserAlreadyExistsException("Username already exists: " + userDto.getUsername());
+        if (existsByUsername(request.getUsername())) {
+            throw new UserAlreadyExistsException("Username already exists: " + request.getUsername());
         }
-        RoleDto adminRoleDtoEntity = this.roleService.getRoleByType(RoleType.ROLE_ADMIN);
 
-        saveUser(userDto, adminRoleDtoEntity);
+        UserDto userDto = UserDto.builder()
+                .username(request.getUsername())
+                .password(request.getPassword())
+                .email(request.getEmail())
+                .emailVerified(true)
+                .build();
+
+        RoleDto adminRoleDto = roleService.getRoleByType(RoleType.ROLE_ADMIN);
+        saveUser(userDto, adminRoleDto);
     }
 
     @Override
-    public Optional<UserDto> inquireUser(Long userId) {
-        return userRepository.findById(userId)
-                .map(UserMapper::userEntityToUserDto);
+    public JwtResponse login(LoginRequest request,
+                             AuthenticationManager authenticationManager,
+                             JwtUtil jwtUtil) {
+
+        UserDto userDto = userRepository.findByUsername(request.getUsername())
+                .map(UserMapper::userEntityToUserDto)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found!"));
+
+        if (Boolean.FALSE.equals(userDto.getEmailVerified())) {
+            throw new AccessDeniedException("You need to verify your email address.");
+        }
+
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+        );
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+        String accessToken = jwtUtil.generateAccessToken(userDetails);
+        String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+
+        return new JwtResponse(accessToken, refreshToken);
     }
+
+    @Override
+    public void logout(HttpServletRequest request, JwtUtil jwtUtil) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            Date expirationDate = jwtUtil.getExpirationDate(token);
+            tokenBlacklistService.blacklistToken(token, expirationDate);
+        }
+    }
+
+    @Override
+    public JwtResponse refreshToken(TokenRefreshRequest request,
+                                    JwtUtil jwtUtil) {
+        String username = jwtUtil.extractUsername(request.getRefreshToken());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+        if (!jwtUtil.isTokenExpired(request.getRefreshToken())) {
+            String newAccessToken = jwtUtil.generateAccessToken(userDetails);
+            return new JwtResponse(newAccessToken, request.getRefreshToken());
+        } else {
+            throw new AccessDeniedException("Refresh token has expired. Please login again.");
+        }
+    }
+
+    @Override
+    public Optional<UserResponse> inquireUser(Long userId) {
+        return userRepository.findById(userId)
+                .map(UserMapper::userEntityToUserResponse);
+    }
+
+    @Override
+    public Optional<UserResponse> inquireUserWithUsername(String username) {
+        return userRepository.findByUsername(username)
+                .map(UserMapper::userEntityToUserResponse);
+    }
+
+    @Override
+    public void changePassword(String username, PasswordChangeRequest request) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found!"));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Old password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    @Override
+    public void verifyUserEmail(String token) {
+        Optional<UserEntity> optionalUser = userRepository.findByVerificationToken(token);
+
+        if (optionalUser.isEmpty()) {
+            throw new IllegalArgumentException("Invalid or expired token.");
+        }
+
+        UserEntity user = optionalUser.get();
+
+        if (user.getEmailVerified()) {
+            throw new IllegalStateException("Email is already verified.");
+        }
+
+        user.setEmailVerified(true);
+        user.setVerificationToken(null);
+        userRepository.save(user);
+    }
+
 }

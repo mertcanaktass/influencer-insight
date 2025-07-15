@@ -1,6 +1,5 @@
 package com.deneme.influencerinsight.controller;
 
-import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.service.UserService;
@@ -8,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +16,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final UserService userService;
@@ -48,13 +49,13 @@ public class AdminController {
             tags = {"User Management"})
     public ResponseEntity<?> inquireUser(@PathVariable Long userId) {
         try {
-            Optional<UserDto> user = userService.inquireUser(userId);
+            Optional<UserResponse> user = userService.inquireUser(userId);
             if (user.isPresent()) {
                 return ResponseEntity.ok(user.get());
             }
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Kullanıcı bulunamadı");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found!");
         } catch (Exception exception) {
-            return ResponseEntity.internalServerError().body("Sunucu hatası: " + exception.getMessage());
+            return ResponseEntity.internalServerError().body("Server error: " + exception.getMessage());
         }
     }
 
