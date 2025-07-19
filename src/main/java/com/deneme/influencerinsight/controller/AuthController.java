@@ -26,28 +26,24 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final UserService userService;
 
-    @PreAuthorize("permitAll()")
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
         userService.register(request);
         return ResponseEntity.ok("User registered!");
     }
 
-    @PreAuthorize("permitAll()")
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest request) {
         JwtResponse jwtResponse = userService.login(request, authenticationManager, jwtUtil);
         return ResponseEntity.ok(jwtResponse);
     }
 
-    @PreAuthorize("permitAll()")
     @PostMapping("/refresh")
     public ResponseEntity<JwtResponse> refreshToken(@RequestBody TokenRefreshRequest request) {
         JwtResponse response = userService.refreshToken(request, jwtUtil);
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("permitAll()")
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpServletRequest request) {
         userService.logout(request, jwtUtil);
@@ -62,14 +58,12 @@ public class AuthController {
                 .orElseThrow(() -> new RuntimeException("User not found!"));
     }
 
-    @PreAuthorize("permitAll()")
     @PutMapping("/change-password")
     public ResponseEntity<String> changePassword(@RequestBody PasswordChangeRequest request, Principal principal) {
         userService.changePassword(principal.getName(), request);
         return ResponseEntity.ok("Password updated successfully");
     }
 
-    @PreAuthorize("permitAll()")
     @GetMapping("/verify-email")
     public ResponseEntity<String> verifyEmail(@RequestParam String token) {
         userService.verifyUserEmail(token);
