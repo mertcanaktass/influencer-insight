@@ -81,6 +81,8 @@ public class UserServiceImpl implements UserService {
                 .email(request.getEmail())
                 .emailVerified(false)
                 .verificationToken(token)
+                .status(0) // Kullanıcı kayıt olduğunda statu 0 (pasif)
+                .createDate(new Date())
                 .build();
 
         RoleDto roleDto = roleService.getRoleByType(RoleType.ROLE_USER);
@@ -176,6 +178,7 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdateDate(new Date());
         userRepository.save(user);
     }
 
@@ -189,6 +192,7 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setEmailVerified(true);
+        user.setStatus(1); // Kullanıcı eğer email doğrulamasını başarılı şekilde yaptıysa statu 1'e (aktif) alınır.
         user.setVerificationToken(null);
         userRepository.save(user);
     }

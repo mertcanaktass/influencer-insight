@@ -16,5 +16,5 @@ public class AbstractDto {
     private Long createUser;
     private Date updateDate;
     private Long updateUser;
-    private String status;
+    private Integer status;
 }

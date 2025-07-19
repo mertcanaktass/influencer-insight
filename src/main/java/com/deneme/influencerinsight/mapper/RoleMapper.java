@@ -15,7 +15,7 @@ public class RoleMapper {
         return RoleDto.builder()
                 .id(entity.getId())
                 .roleType(entity.getRoleType())
-                .status(GeneralEnums.Status.getStatusById(entity.getStatus()))
+                .status(entity.getStatus())
                 .build();
     }
 
@@ -24,7 +24,7 @@ public class RoleMapper {
         return RoleEntity.builder()
                 .id(roleDto.getId())
                 .roleType(roleDto.getRoleType())
-                .status(GeneralEnums.Status.getIdByStatus(roleDto.getStatus()))
+                .status(roleDto.getStatus())
                 .build();
     }
 }

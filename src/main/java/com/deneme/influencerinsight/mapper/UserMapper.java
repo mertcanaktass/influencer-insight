@@ -44,7 +44,7 @@ public class UserMapper {
         return UserDto.builder()
                 .username(userEntity.getUsername())
                 .email(userEntity.getEmail())
-                .status(GeneralEnums.Status.getStatusById(userEntity.getStatus()))
+                .status(userEntity.getStatus())
                 .createDate(userEntity.getCreateDate())
                 .build();
     }
