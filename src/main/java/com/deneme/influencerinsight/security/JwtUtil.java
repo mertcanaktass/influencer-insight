@@ -16,16 +16,17 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.access-token.expiration-ms}")
-    private Long accessTokenExpirationMs;
+    private final Long accessTokenExpirationMs;
+    private final Long refreshTokenExpirationMs;
+    private final SecretKey secretKey;
 
-    @Value("${jwt.refresh-token.expiration-ms}")
-    private Long refreshTokenExpirationMs;
-
-    @Value("${jwt.secret}")
-    private String secretBase64;
-
-    private final SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretBase64));
+    public JwtUtil(@Value("${jwt.access-token.expiration-ms}") Long accessTokenExpirationMs,
+                   @Value("${jwt.refresh-token.expiration-ms}") Long refreshTokenExpirationMs,
+                   @Value("${jwt.secret}") String secretBase64) {
+        this.accessTokenExpirationMs = accessTokenExpirationMs;
+        this.refreshTokenExpirationMs = refreshTokenExpirationMs;
+        this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretBase64));
+    }
 
     public String generateAccessToken(UserDetails userDetails) {
         return Jwts.builder()
