@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -15,9 +16,16 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private static final String SECRET_KEY_BASE64 = "RkFLRV9TRUNSRVRfS0VZX1RPS19CRV9SRUxBQ0VEX1NFQ1VSRQ=="; // Örnek: "FAKE_SECRET_KEY_TO_BE_REPLACED_SECURE" base64 encoded
+    @Value("${jwt.access-token.expiration-ms}")
+    private Long accessTokenExpirationMs;
 
-    private final SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY_BASE64));
+    @Value("${jwt.refresh-token.expiration-ms}")
+    private Long refreshTokenExpirationMs;
+
+    @Value("${jwt.secret}")
+    private String secretBase64;
+
+    private final SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretBase64));
 
     public String generateAccessToken(UserDetails userDetails) {
         return Jwts.builder()
@@ -26,7 +34,7 @@ public class JwtUtil {
                         .map(GrantedAuthority::getAuthority)
                         .toList())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15)) // 15 dk
+                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpirationMs)) // 15 min
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -35,7 +43,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 7)) // 7 gün
+                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpirationMs)) // 7 days
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }

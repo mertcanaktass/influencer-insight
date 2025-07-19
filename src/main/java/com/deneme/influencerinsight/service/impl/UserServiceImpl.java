@@ -1,6 +1,5 @@
 package com.deneme.influencerinsight.service.impl;
 
-import com.deneme.influencerinsight.config.SecurityConfig;
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.RoleType;
@@ -40,7 +39,6 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final SecurityConfig securityConfig;
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
@@ -49,8 +47,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserResponse> getAllUsers() {
-        List<UserEntity> userEntities = userRepository.findAll();
-        return userEntities.stream()
+        return userRepository.findAll().stream()
                 .map(UserMapper::userEntityToUserResponse)
                 .toList();
     }
@@ -62,7 +59,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void saveUser(UserDto userDto, RoleDto roleDto) {
-        UserEntity userEntity = UserMapper.userDtoToEntity(userDto, securityConfig.passwordEncoder().encode(userDto.getPassword()), roleDto);
+        UserEntity userEntity = UserMapper.userDtoToEntity(
+                userDto,
+                passwordEncoder.encode(userDto.getPassword()),
+                roleDto
+        );
         userRepository.save(userEntity);
     }
 
@@ -171,7 +172,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found!"));
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Old password is incorrect");
+            throw new AccessDeniedException("Old password is incorrect");
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
@@ -180,15 +181,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void verifyUserEmail(String token) {
-        Optional<UserEntity> optionalUser = userRepository.findByVerificationToken(token);
+        UserEntity user = userRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired token."));
 
-        if (optionalUser.isEmpty()) {
-            throw new IllegalArgumentException("Invalid or expired token.");
-        }
-
-        UserEntity user = optionalUser.get();
-
-        if (user.getEmailVerified()) {
+        if (user.isEmailVerified()) {
             throw new IllegalStateException("Email is already verified.");
         }
 
@@ -196,5 +192,4 @@ public class UserServiceImpl implements UserService {
         user.setVerificationToken(null);
         userRepository.save(user);
     }
-
 }

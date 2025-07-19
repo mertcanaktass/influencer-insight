@@ -7,4 +7,3 @@ public interface TokenBlacklistService {
 
     boolean isTokenBlacklisted(String token);
 }
-

@@ -2,6 +2,7 @@ package com.deneme.influencerinsight.mapper;
 
 import com.deneme.influencerinsight.dto.RefreshTokenDto;
 import com.deneme.influencerinsight.model.RefreshTokenEntity;
+import com.deneme.influencerinsight.model.UserEntity;
 
 public class RefreshTokenMapper {
 
@@ -19,13 +20,22 @@ public class RefreshTokenMapper {
                 .build();
     }
 
-    public static RefreshTokenEntity refreshTokenDtoToEntity(RefreshTokenDto refreshTokenDto) {
-        if (refreshTokenDto == null) return null;
+    public static RefreshTokenEntity refreshTokenDtoToEntity(RefreshTokenDto dto) {
+        if (dto == null) return null;
         return RefreshTokenEntity.builder()
-                .id(refreshTokenDto.getId())
-                .token(refreshTokenDto.getToken())
-                .expiryDate(refreshTokenDto.getExpiryDate())
-                //.user(userEntity)
+                .id(dto.getId())
+                .token(dto.getToken())
+                .expiryDate(dto.getExpiryDate())
+                .build();
+    }
+
+    public static RefreshTokenEntity refreshTokenDtoToEntityWithUser(RefreshTokenDto dto, UserEntity userEntity) {
+        if (dto == null) return null;
+        return RefreshTokenEntity.builder()
+                .id(dto.getId())
+                .token(dto.getToken())
+                .expiryDate(dto.getExpiryDate())
+                .user(userEntity)
                 .build();
     }
 }

@@ -3,32 +3,41 @@ package com.deneme.influencerinsight.service.impl;
 import com.deneme.influencerinsight.model.TokenBlacklistEntity;
 import com.deneme.influencerinsight.repository.TokenBlacklistRepository;
 import com.deneme.influencerinsight.service.TokenBlacklistService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class TokenBlacklistServiceImpl implements TokenBlacklistService {
-    private final TokenBlacklistRepository tokenBlacklistRepository;
 
-    public TokenBlacklistServiceImpl(TokenBlacklistRepository tokenBlacklistRepository) {
-        this.tokenBlacklistRepository = tokenBlacklistRepository;
-    }
+    private final TokenBlacklistRepository tokenBlacklistRepository;
 
     @Override
     public void blacklistToken(String token, Date expirationDate) {
+        if (token == null || token.isEmpty()) {
+            log.warn("Blacklist token failed: token is null or empty");
+            return;
+        }
+
         if (!tokenBlacklistRepository.existsByToken(token)) {
             TokenBlacklistEntity entity = TokenBlacklistEntity.builder()
                     .token(token)
                     .expirationDate(expirationDate)
                     .build();
             tokenBlacklistRepository.save(entity);
+            log.info("Token blacklisted: {}", token);
         }
     }
 
     @Override
     public boolean isTokenBlacklisted(String token) {
+        if (token == null || token.isEmpty()) {
+            return false;
+        }
         return tokenBlacklistRepository.existsByToken(token);
     }
 }
-

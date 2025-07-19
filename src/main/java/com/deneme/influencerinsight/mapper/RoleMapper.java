@@ -10,7 +10,7 @@ public class RoleMapper {
         throw new UnsupportedOperationException("Utility class");
     }
 
-    public static RoleDto entityToRole(RoleEntity entity) {
+    public static RoleDto entityToRoleDto(RoleEntity entity) {
         if (entity == null) return null;
         return RoleDto.builder()
                 .id(entity.getId())
@@ -19,7 +19,7 @@ public class RoleMapper {
                 .build();
     }
 
-    public static RoleEntity roleToEntity(RoleDto roleDto) {
+    public static RoleEntity roleDtoToEntity(RoleDto roleDto) {
         if (roleDto == null) return null;
         return RoleEntity.builder()
                 .id(roleDto.getId())

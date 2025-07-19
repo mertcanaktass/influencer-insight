@@ -1,5 +1,6 @@
 package com.deneme.influencerinsight.service.impl;
 
+import com.deneme.influencerinsight.exception.EmailSendException;
 import com.deneme.influencerinsight.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -36,12 +37,11 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlContent, true);
-            helper.setFrom("your_email@gmail.com");
+            helper.setFrom("your_email@gmail.com"); //TODO: app.prop'tan çekilecek !
 
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("E-posta gönderimi başarısız: " + e.getMessage());
+            throw new EmailSendException("E-posta gönderimi başarısız", e);
         }
     }
-
 }

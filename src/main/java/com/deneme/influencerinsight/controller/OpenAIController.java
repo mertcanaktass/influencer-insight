@@ -1,7 +1,7 @@
 package com.deneme.influencerinsight.controller;
 
 import com.deneme.influencerinsight.rest.requests.OpenAiRequest;
-import com.deneme.influencerinsight.rest.responses.OpenAiResponse;
+import com.deneme.influencerinsight.rest.responses.openapi.OpenAiResponse;
 import com.deneme.influencerinsight.service.OpenAiService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;

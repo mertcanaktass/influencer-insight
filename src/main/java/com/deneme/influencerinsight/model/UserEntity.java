@@ -30,7 +30,7 @@ public class UserEntity extends AbstractEntity {
     private RoleEntity roleEntity;
 
     @Column(name = "email_verified")
-    private Boolean emailVerified;
+    private boolean emailVerified;
 
     @Column(name = "verification_token")
     private String verificationToken;

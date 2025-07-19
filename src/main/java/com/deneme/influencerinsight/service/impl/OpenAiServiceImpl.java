@@ -1,7 +1,8 @@
 package com.deneme.influencerinsight.service.impl;
 
+import com.deneme.influencerinsight.exception.OpenAiException;
 import com.deneme.influencerinsight.rest.requests.OpenAiRequest;
-import com.deneme.influencerinsight.rest.responses.OpenAiResponse;
+import com.deneme.influencerinsight.rest.responses.openapi.OpenAiResponse;
 import com.deneme.influencerinsight.service.OpenAiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +20,8 @@ public class OpenAiServiceImpl implements OpenAiService {
     private String apiKey;
 
     private final RestTemplate restTemplate;
-    private static final String OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+    @Value("${openai.base-url}")
+    private String baseUrl;
 
     @Override
     public OpenAiResponse chat(OpenAiRequest request) {
@@ -29,13 +31,23 @@ public class OpenAiServiceImpl implements OpenAiService {
 
         HttpEntity<OpenAiRequest> entity = new HttpEntity<>(request, headers);
 
-        ResponseEntity<OpenAiResponse> response = restTemplate.exchange(
-                OPENAI_URL,
-                HttpMethod.POST,
-                entity,
-                OpenAiResponse.class
-        );
+        try {
+            ResponseEntity<OpenAiResponse> response = restTemplate.exchange(
+                    baseUrl,
+                    HttpMethod.POST,
+                    entity,
+                    OpenAiResponse.class
+            );
 
-        return response.getBody();
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            } else {
+                log.error("OpenAI API failed. Status: {}, Body: {}", response.getStatusCode(), response.getBody());
+                throw new OpenAiException("OpenAI API request failed with status: " + response.getStatusCode());
+            }
+        } catch (Exception ex) {
+            log.error("Error while calling OpenAI API", ex);
+            throw new OpenAiException("Error while calling OpenAI API", ex);
+        }
     }
 }

@@ -9,7 +9,7 @@ import com.deneme.influencerinsight.rest.responses.UserResponse;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-import static com.deneme.influencerinsight.mapper.RoleMapper.roleToEntity;
+import static com.deneme.influencerinsight.mapper.RoleMapper.roleDtoToEntity;
 
 public class UserMapper {
 
@@ -34,7 +34,7 @@ public class UserMapper {
                 .email(userDto.getEmail())
                 .emailVerified(Boolean.TRUE.equals(userDto.getEmailVerified()))
                 .verificationToken(userDto.getVerificationToken())
-                .roleEntity(roleToEntity(roleDto))
+                .roleEntity(roleDtoToEntity(roleDto))
                 .build();
 
     }
