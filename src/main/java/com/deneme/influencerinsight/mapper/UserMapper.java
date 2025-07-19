@@ -2,7 +2,6 @@ package com.deneme.influencerinsight.mapper;
 
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
-import com.deneme.influencerinsight.enums.GeneralEnums;
 import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 
@@ -46,6 +45,15 @@ public class UserMapper {
                 .email(userEntity.getEmail())
                 .status(userEntity.getStatus())
                 .createDate(userEntity.getCreateDate())
+                .build();
+    }
+
+    public static UserEntity userResponseToEntity(UserResponse userResponse) {
+        if (Objects.isNull(userResponse)) throw new NoSuchElementException("User Not Found!");
+        return UserEntity.builder()
+                .id(userResponse.getId())
+                .username(userResponse.getUsername())
+                .email(userResponse.getEmail())
                 .build();
     }
 }
