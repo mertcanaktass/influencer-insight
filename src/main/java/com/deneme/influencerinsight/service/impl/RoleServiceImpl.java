@@ -26,10 +26,8 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public RoleDto getRoleByType(RoleType roleType) {
-        RoleEntity roleEntity = roleRepository.findByRoleType(roleType);
-        if (roleEntity == null) {
-            throw new ResourceNotFoundException("Role not found with type: " + roleType);
-        }
+        RoleEntity roleEntity = roleRepository.findById(roleType.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found with type: " + roleType.getType()));
         return entityToRoleDto(roleEntity);
     }
 }

@@ -85,7 +85,7 @@ public class UserServiceImpl implements UserService {
                 .createDate(new Date())
                 .build();
 
-        RoleDto roleDto = roleService.getRoleByType(RoleType.ROLE_USER);
+        RoleDto roleDto = roleService.getRoleByType(RoleType.ROLE_CUSTOMER);
 
         emailService.sendVerificationEmail(userDto.getEmail(), token);
         saveUser(userDto, roleDto);
