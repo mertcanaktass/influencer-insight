@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OpenAiMessageDto {
-    private String role;    // "user", "assistant", "system"
+    private String role;
     private String content;
 }
