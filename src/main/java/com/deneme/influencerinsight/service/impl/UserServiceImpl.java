@@ -3,6 +3,7 @@ package com.deneme.influencerinsight.service.impl;
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.RoleType;
+import com.deneme.influencerinsight.enums.Status;
 import com.deneme.influencerinsight.exception.UserAlreadyExistsException;
 import com.deneme.influencerinsight.mapper.UserMapper;
 import com.deneme.influencerinsight.model.UserEntity;
@@ -81,7 +82,7 @@ public class UserServiceImpl implements UserService {
                 .email(request.getEmail())
                 .emailVerified(false)
                 .verificationToken(token)
-                .status(0) // Kullanıcı kayıt olduğunda statu 0 (pasif)
+                .status(Status.getStatusByShortCode("passive")) // Kullanıcı kayıt olduğunda statu 0 (pasif)
                 .createDate(new Date())
                 .build();
 

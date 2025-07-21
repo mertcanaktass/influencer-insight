@@ -18,12 +18,18 @@ public enum Status {
         this.status = status;
     }
 
-    public static String getStatusById(Integer id) {
+    public static Status getStatusById(Integer id) {
         return Arrays.stream(Status.values())
                 .filter(s -> s.getId().equals(id))
-                .map(Status::getStatus)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Invalid Status ID: " + id));
+    }
+
+    public static Status getStatusByShortCode(String shortCode) {
+        return Arrays.stream(Status.values())
+                .filter(s -> s.getStatus().equals(shortCode))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid Status Short Code: " + shortCode));
     }
 
     public static Integer getIdByStatus(String status) {

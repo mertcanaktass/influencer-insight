@@ -1,5 +1,6 @@
 package com.deneme.influencerinsight.dto;
 
+import com.deneme.influencerinsight.enums.Status;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,8 +14,8 @@ import java.util.Date;
 @NoArgsConstructor
 public class AbstractDto {
     private Date createDate;
-    private Long createUser;
+    private Long createUserId;
     private Date updateDate;
-    private Long updateUser;
-    private Integer status;
+    private Long updateUserId;
+    private Status status;
 }

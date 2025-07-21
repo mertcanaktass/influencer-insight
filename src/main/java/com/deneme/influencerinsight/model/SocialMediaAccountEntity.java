@@ -3,6 +3,7 @@ package com.deneme.influencerinsight.model;
 import com.deneme.influencerinsight.enums.SocialMediaPlatform;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "social_media_account")
@@ -10,7 +11,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class SocialMediaAccountEntity {
 
     @Id
