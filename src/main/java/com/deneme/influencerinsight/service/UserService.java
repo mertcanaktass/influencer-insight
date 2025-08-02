@@ -2,6 +2,7 @@ package com.deneme.influencerinsight.service;
 
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
+import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.rest.requests.LoginRequest;
 import com.deneme.influencerinsight.rest.requests.PasswordChangeRequest;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
@@ -16,15 +17,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserService {
+    List<UserDto> getAllUsersDto();
+
     List<UserResponse> getAllUsers();
 
     boolean existsByUsername(String username);
 
-    void saveUser(UserDto userDto, RoleDto roleDto);
+    UserEntity saveUser(UserDto userDto, RoleDto roleDto);
 
-    void registerAdminUser(RegisterRequest request);
+    UserDto registerAdminUser(RegisterRequest request);
 
-    void register(RegisterRequest registerRequest);
+    UserDto register(RegisterRequest registerRequest);
 
     JwtResponse login(LoginRequest request, AuthenticationManager authenticationManager, JwtUtil jwtUtil);
 
@@ -33,6 +36,8 @@ public interface UserService {
     JwtResponse refreshToken(TokenRefreshRequest request, JwtUtil jwtUtil);
 
     Optional<UserResponse> inquireUser(Long userId);
+
+    Optional<UserDto> inquireUserDto(Long userId);
 
     Optional<UserResponse> inquireUserWithUsername(String username);
 

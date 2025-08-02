@@ -1,21 +1,28 @@
 package com.deneme.influencerinsight.controller;
 
+import com.deneme.influencerinsight.dto.UserDto;
+import com.deneme.influencerinsight.enums.OperationType;
+import com.deneme.influencerinsight.model.AbstractEntity;
 import com.deneme.influencerinsight.rest.requests.LoginRequest;
 import com.deneme.influencerinsight.rest.requests.PasswordChangeRequest;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
 import com.deneme.influencerinsight.rest.requests.TokenRefreshRequest;
+import com.deneme.influencerinsight.rest.responses.AbstractResponse;
 import com.deneme.influencerinsight.rest.responses.JwtResponse;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.security.JwtUtil;
 import com.deneme.influencerinsight.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -27,9 +34,19 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
-        userService.register(request);
-        return ResponseEntity.ok("User registered!");
+    public ResponseEntity<AbstractResponse<UserDto>> register(@RequestBody RegisterRequest request) {
+        UserDto registeredUser = userService.register(request);
+        AbstractResponse<UserDto> response = new AbstractResponse<>();
+        response.setOperationType(OperationType.CREATE_CUSTOMER_USER);
+        if (Objects.nonNull(registeredUser)) {
+            response.setResponseMessage("User Registered Successfully!");
+            response.setData(registeredUser);
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } else {
+            response.setResponseMessage("User Registration Failed!");
+            response.setData(null);
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PostMapping("/login")

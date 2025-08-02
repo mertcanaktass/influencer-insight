@@ -29,6 +29,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -47,6 +49,14 @@ public class UserServiceImpl implements UserService {
     private final TokenBlacklistService tokenBlacklistService;
 
     @Override
+    public List<UserDto> getAllUsersDto() {
+        return userRepository.findAll()
+                .stream()
+                .map(UserMapper::userEntityToUserDto)
+                .toList();
+    }
+
+    @Override
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(UserMapper::userEntityToUserResponse)
@@ -59,17 +69,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void saveUser(UserDto userDto, RoleDto roleDto) {
+    @Transactional(propagation=Propagation.REQUIRED)
+    public UserEntity saveUser(UserDto userDto, RoleDto roleDto) {
         UserEntity userEntity = UserMapper.userDtoToEntity(
                 userDto,
                 passwordEncoder.encode(userDto.getPassword()),
                 roleDto
         );
-        userRepository.save(userEntity);
+        return userRepository.save(userEntity);
     }
 
     @Override
-    public void register(RegisterRequest request) {
+    public UserDto register(RegisterRequest request) {
         if (existsByUsername(request.getUsername())) {
             throw new UserAlreadyExistsException("Username already exists: " + request.getUsername());
         }
@@ -89,11 +100,12 @@ public class UserServiceImpl implements UserService {
         RoleDto roleDto = roleService.getRoleByType(RoleType.ROLE_CUSTOMER);
 
         emailService.sendVerificationEmail(userDto.getEmail(), token);
-        saveUser(userDto, roleDto);
+        UserEntity createdUser = saveUser(userDto, roleDto);
+        return UserMapper.userEntityToUserDto(createdUser);
     }
 
     @Override
-    public void registerAdminUser(RegisterRequest request) {
+    public UserDto registerAdminUser(RegisterRequest request) {
         if (existsByUsername(request.getUsername())) {
             throw new UserAlreadyExistsException("Username already exists: " + request.getUsername());
         }
@@ -106,7 +118,8 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         RoleDto adminRoleDto = roleService.getRoleByType(RoleType.ROLE_ADMIN);
-        saveUser(userDto, adminRoleDto);
+        UserEntity createdUser = saveUser(userDto, adminRoleDto);
+        return UserMapper.userEntityToUserDto(createdUser);
     }
 
     @Override
@@ -161,6 +174,12 @@ public class UserServiceImpl implements UserService {
     public Optional<UserResponse> inquireUser(Long userId) {
         return userRepository.findById(userId)
                 .map(UserMapper::userEntityToUserResponse);
+    }
+
+    @Override
+    public Optional<UserDto> inquireUserDto(Long userId) {
+        return userRepository.findById(userId)
+                .map(UserMapper::userEntityToUserDto);
     }
 
     @Override

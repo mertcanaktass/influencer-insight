@@ -5,6 +5,7 @@ import com.deneme.influencerinsight.enums.OperationType;
 import com.deneme.influencerinsight.rest.requests.SocialMediaPlatformRequest;
 import com.deneme.influencerinsight.rest.responses.AbstractResponse;
 import com.deneme.influencerinsight.service.SocialMediaPlatformService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,11 @@ public class SocialMediaPlatformController {
     private SocialMediaPlatformService socialMediaService;
 
     @PostMapping("/createNewPlatform")
+    @Operation(
+            summary = "Create Social Media Platform",
+            description = "Creates Social Media Platform record for connect Costomers Social Media Account",
+            tags = {"Social Media Platform Manager"}
+    )
     public ResponseEntity<AbstractResponse<SocialMediaPlatformDto>> createSocialMediaPlatform(@RequestBody SocialMediaPlatformRequest socialMediaPlatform) {
         try {
             SocialMediaPlatformDto socialMediaPlatformDto = socialMediaService.createSocialMediaPlatform(socialMediaPlatform);
@@ -40,6 +46,11 @@ public class SocialMediaPlatformController {
     }
 
     @PostMapping("/updatePlatform")
+    @Operation(
+            summary = "Update Social Media Platform",
+            description = "Updates Social Media Platform specifications due to changes for that platform",
+            tags = {"Social Media Platform Manager"}
+    )
     public ResponseEntity<AbstractResponse<SocialMediaPlatformDto>> updateSocialMediaPlatform(@RequestBody SocialMediaPlatformRequest socialMediaPlatform) {
         try {
             SocialMediaPlatformDto socialMediaPlatformDto = socialMediaService.updateSocialMediaPlatform(socialMediaPlatform);
@@ -53,6 +64,11 @@ public class SocialMediaPlatformController {
     }
 
     @PostMapping("/deactivatePlatform")
+    @Operation(
+            summary = "Deactivate Social Media Platform",
+            description = "Deactivates Social Media Platform record if needed",
+            tags = {"Social Media Platform Manager"}
+    )
     public ResponseEntity<AbstractResponse<SocialMediaPlatformDto>> deactivateSocialMediaPlatform(@RequestBody SocialMediaPlatformRequest socialMediaPlatform) {
         try {
             SocialMediaPlatformDto socialMediaPlatformDto = socialMediaService.deactivateSocialMediaPlatform(socialMediaPlatform);

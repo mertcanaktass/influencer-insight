@@ -16,5 +16,6 @@ import org.springframework.stereotype.Component;
 @SuperBuilder
 public class AbstractResponse<T> {
     private T data;
+    private String responseMessage;
     private OperationType operationType;
 }

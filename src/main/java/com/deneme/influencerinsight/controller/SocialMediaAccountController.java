@@ -3,6 +3,7 @@ package com.deneme.influencerinsight.controller;
 import com.deneme.influencerinsight.rest.requests.SocialMediaAccountRequest;
 import com.deneme.influencerinsight.rest.responses.SocialMediaAccountResponse;
 import com.deneme.influencerinsight.service.SocialMediaAccountService;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,6 +19,11 @@ public class SocialMediaAccountController {
     private final SocialMediaAccountService socialMediaAccountService;
 
     @PostMapping()
+    @Operation(
+            summary = "Add Social Media Account Process",
+            description = "Add Social Media Account for Specific Customer",
+            tags = {"Social Media Account Management"}
+    )
     public ResponseEntity<SocialMediaAccountResponse> addAccount(Authentication authentication,
                                                                  @RequestBody SocialMediaAccountRequest request) {
         String username = authentication.getName();
@@ -26,12 +32,22 @@ public class SocialMediaAccountController {
     }
 
     @GetMapping
+    @Operation(
+            summary = "Get Social Media Accounts",
+            description = "Get Social Media Accounts of specific customer",
+            tags = {"Social Media Account Management"}
+    )
     public ResponseEntity<List<SocialMediaAccountResponse>> getAccounts(Authentication authentication) {
         String username = authentication.getName();
         return ResponseEntity.ok(socialMediaAccountService.getAccounts(username));
     }
 
     @DeleteMapping("/{id}")
+    @Operation(
+            summary = "Deactivate Social Media Account",
+            description = "Deactivates Customers Social Media Account",
+            tags = {"Social Media Account Management"}
+    )
     public ResponseEntity<Void> deleteAccount(Authentication authentication, @PathVariable Long id) {
         String username = authentication.getName();
         socialMediaAccountService.deleteAccount(username, id);
