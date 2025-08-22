@@ -4,8 +4,6 @@ import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
 import com.deneme.influencerinsight.rest.requests.SocialMediaAccountRequest;
 import com.deneme.influencerinsight.rest.responses.SocialMediaAccountResponse;
 
-import java.util.Objects;
-
 public class SocialMediaAccountMapper {
 
     private SocialMediaAccountMapper() {
@@ -23,14 +21,16 @@ public class SocialMediaAccountMapper {
                 .build();
     }
 
-    public static SocialMediaAccountResponse entityToResponse(SocialMediaAccountEntity entity) {
-        if (Objects.isNull(entity)) return null;
-
-        SocialMediaAccountResponse response = new SocialMediaAccountResponse();
-        response.setId(entity.getId());
-        response.setPlatform(entity.getPlatform());
-        response.setUsername(entity.getUsername());
-        response.setProfileUrl(entity.getProfileUrl());
-        return response;
+    public static SocialMediaAccountResponse entityToResponse(SocialMediaAccountEntity e) {
+        if (e == null) return null;
+        return SocialMediaAccountResponse.builder()
+                .id(e.getId())
+                .platform(e.getPlatform())
+                .username(e.getUsername())
+                .profileUrl(e.getProfileUrl())
+                .hasAccessToken(e.getAccessToken() != null && !e.getAccessToken().isBlank())
+                .extraData(e.getExtraData())
+                .lastSyncedAt(e.getLastSyncedAt())
+                .build();
     }
 }

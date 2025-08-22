@@ -2,11 +2,13 @@ package com.deneme.influencerinsight.service.impl;
 
 import com.deneme.influencerinsight.dto.OpenAiMessageDto;
 import com.deneme.influencerinsight.exception.OpenAiException;
+import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
+import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
 import com.deneme.influencerinsight.rest.requests.OpenAiRequest;
-import com.deneme.influencerinsight.rest.responses.SocialMediaAccountResponse;
 import com.deneme.influencerinsight.rest.responses.openapi.OpenAiResponse;
 import com.deneme.influencerinsight.service.OpenAiService;
 import com.deneme.influencerinsight.service.SocialMediaAccountService;
+import com.deneme.influencerinsight.util.PromptBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,8 +29,12 @@ public class OpenAiServiceImpl implements OpenAiService {
     @Value("${openai.base-url}")
     private String baseUrl;
 
+    @Value("${openai.model:gpt-4o-mini}")
+    private String defaultModel;
+
     private final RestTemplate restTemplate;
     private final SocialMediaAccountService socialMediaAccountService;
+    private final SocialMediaAccountRepository socialMediaAccountRepository;
 
     @Override
     public OpenAiResponse chat(OpenAiRequest request) {
@@ -38,63 +44,47 @@ public class OpenAiServiceImpl implements OpenAiService {
 
         HttpEntity<OpenAiRequest> entity = new HttpEntity<>(request, headers);
 
+        ResponseEntity<OpenAiResponse> response;
         try {
-            ResponseEntity<OpenAiResponse> response = restTemplate.exchange(
-                    baseUrl + "/chat/completions",
+            response = restTemplate.exchange(
+                    baseUrl + "/v1/chat/completions",
                     HttpMethod.POST,
                     entity,
                     OpenAiResponse.class
             );
-
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
-            } else {
-                log.error("OpenAI API failed. Status: {}, Body: {}", response.getStatusCode(), response.getBody());
-                throw new OpenAiException("OpenAI API request failed with status: " + response.getStatusCode());
-            }
         } catch (Exception ex) {
-            log.error("Error while calling OpenAI API", ex);
             throw new OpenAiException("Error while calling OpenAI API", ex);
         }
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return response.getBody();
+        }
+        throw new OpenAiException("OpenAI API request failed with status: " + response.getStatusCode());
     }
 
     @Override
-    public String analyze(String username, String prompt) {
-        List<SocialMediaAccountResponse> accounts = socialMediaAccountService.getAccounts(username);
+    public String analyze(String username, String userPrompt) {
+        socialMediaAccountService.syncAll(username);
 
-        if (accounts.isEmpty()) {
-            throw new OpenAiException("No connected social media accounts found for user: " + username);
+        List<SocialMediaAccountEntity> accounts = socialMediaAccountRepository.findAllByUserUsername(username);
+
+        String prompt = PromptBuilder.buildAnalysisPrompt(username, userPrompt, accounts);
+
+        OpenAiMessageDto system = new OpenAiMessageDto("system",
+                "You are a world-class social media strategist. Keep answers concise but specific.");
+        OpenAiMessageDto user = new OpenAiMessageDto("user", prompt);
+
+        OpenAiRequest req = new OpenAiRequest();
+        req.setModel(defaultModel);
+        req.setMessages(List.of(system, user));
+        req.setTemperature(0.3);
+
+        OpenAiResponse ai = chat(req);
+
+        if (ai.getChoices() != null && !ai.getChoices().isEmpty() && ai.getChoices().get(0).getMessage() != null) {
+            return ai.getChoices().get(0).getMessage().getContent();
         }
-
-        StringBuilder contextBuilder = new StringBuilder("The user has connected the following social media accounts:\n");
-
-        for (SocialMediaAccountResponse account : accounts) {
-            contextBuilder.append("- Platform: ").append(account.getPlatform().name())
-                    .append(", Username: ").append(account.getUsername()).append("\n")
-                    .append(", SocialMediaUrl: ").append(account.getProfileUrl());
-        }
-
-        contextBuilder.append("\nNow answer the following question based on the accounts above:\n");
-        contextBuilder.append(prompt);
-
-        List<OpenAiMessageDto> messages = List.of(
-                new OpenAiMessageDto("system", "You are a helpful social media strategist."),
-                new OpenAiMessageDto("user", contextBuilder.toString())
-        );
-
-        OpenAiRequest request = new OpenAiRequest();
-        request.setModel("gpt-3.5-turbo");
-        request.setMessages(messages);
-        request.setTemperature(0.7);
-
-        OpenAiResponse response = chat(request);
-
-        return response.getChoices()
-                .stream()
-                .findFirst()
-                .map(choice -> choice.getMessage().getContent())
-                .orElseThrow(() -> new OpenAiException("No response received from OpenAI"));
+        return "Analiz üretilemedi.";
     }
-
 
 }

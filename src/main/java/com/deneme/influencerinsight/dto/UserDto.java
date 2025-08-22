@@ -1,5 +1,6 @@
 package com.deneme.influencerinsight.dto;
 
+import com.deneme.influencerinsight.model.RoleEntity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,4 +16,5 @@ public class UserDto extends AbstractDto {
     private String email;
     private Boolean emailVerified;
     private String verificationToken;
+    private RoleEntity roleEntity;
 }

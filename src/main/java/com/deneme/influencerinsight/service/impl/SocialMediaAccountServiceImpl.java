@@ -9,9 +9,12 @@ import com.deneme.influencerinsight.rest.responses.SocialMediaAccountResponse;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.service.SocialMediaAccountService;
 import com.deneme.influencerinsight.service.UserService;
+import com.deneme.influencerinsight.social.SocialPlatformProvider;
+import com.deneme.influencerinsight.social.SocialProviderRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 
 import static com.deneme.influencerinsight.mapper.UserMapper.userResponseToEntity;
@@ -22,6 +25,7 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
 
     private final SocialMediaAccountRepository socialMediaAccountRepository;
     private final UserService userService;
+    private final SocialProviderRegistry providerRegistry;
 
     @Override
     public SocialMediaAccountResponse addAccount(String username, SocialMediaAccountRequest request) {
@@ -30,8 +34,8 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
 
         SocialMediaAccountEntity account = SocialMediaAccountMapper.requestToEntity(request);
         account.setUser(userResponseToEntity(user));
-        SocialMediaAccountEntity saved = socialMediaAccountRepository.save(account);
 
+        SocialMediaAccountEntity saved = socialMediaAccountRepository.save(account);
         return SocialMediaAccountMapper.entityToResponse(saved);
     }
 
@@ -56,4 +60,43 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
         socialMediaAccountRepository.delete(account);
     }
 
+    @Override
+    public SocialMediaAccountResponse syncAccount(String username, Long accountId) {
+        UserResponse user = userService.inquireUserWithUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+
+        SocialMediaAccountEntity account = socialMediaAccountRepository.findByIdAndUser(accountId, userResponseToEntity(user))
+                .orElseThrow(() -> new ResourceNotFoundException("Social media account not found"));
+
+        SocialPlatformProvider provider = providerRegistry.getProvider(account.getPlatform());
+        try {
+            String json = provider.fetchAccountSnapshotJson(account.getUsername(), account.getAccessToken());
+            account.setExtraData(json);
+            account.setLastSyncedAt(Instant.now());
+            socialMediaAccountRepository.save(account);
+            return SocialMediaAccountMapper.entityToResponse(account);
+        } catch (Exception e) {
+            throw new RuntimeException("Sync failed: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public List<SocialMediaAccountResponse> syncAll(String username) {
+        UserResponse user = userService.inquireUserWithUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+
+        List<SocialMediaAccountEntity> accounts = socialMediaAccountRepository.findAllByUser(userResponseToEntity(user));
+        for (SocialMediaAccountEntity account : accounts) {
+            SocialPlatformProvider provider = providerRegistry.getProvider(account.getPlatform());
+            try {
+                String json = provider.fetchAccountSnapshotJson(account.getUsername(), account.getAccessToken());
+                account.setExtraData(json);
+                account.setLastSyncedAt(Instant.now());
+            } catch (Exception e) {
+                throw new RuntimeException("Sync failed: " + e.getMessage(), e);
+            }
+        }
+        socialMediaAccountRepository.saveAll(accounts);
+        return accounts.stream().map(SocialMediaAccountMapper::entityToResponse).toList();
+    }
 }

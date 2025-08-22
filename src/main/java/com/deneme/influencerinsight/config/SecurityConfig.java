@@ -34,7 +34,9 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/api/auth/**",
-                                "/api/openai/**"
+                                "/api/openai/**",
+                                "/api/youtube/oauth/url",
+                                "/api/youtube/oauth/callback"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

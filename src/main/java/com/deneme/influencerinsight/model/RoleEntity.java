@@ -1,7 +1,11 @@
 package com.deneme.influencerinsight.model;
 
+import com.deneme.influencerinsight.enums.RoleType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 @Entity
@@ -17,8 +21,9 @@ public class RoleEntity extends AbstractEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "role_name")
-    private String roleName;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role_type", nullable = false, unique = true)
+    private RoleType roleType;
 
     @Column(name = "status")
     private Integer status;
