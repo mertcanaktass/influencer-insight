@@ -1,8 +1,6 @@
 package com.deneme.influencerinsight.controller;
 
-import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.OperationType;
-import com.deneme.influencerinsight.model.AbstractEntity;
 import com.deneme.influencerinsight.rest.requests.LoginRequest;
 import com.deneme.influencerinsight.rest.requests.PasswordChangeRequest;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
@@ -12,7 +10,6 @@ import com.deneme.influencerinsight.rest.responses.JwtResponse;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.security.JwtUtil;
 import com.deneme.influencerinsight.service.UserService;
-import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

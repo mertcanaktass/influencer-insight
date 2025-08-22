@@ -1,6 +1,5 @@
 package com.deneme.influencerinsight.controller;
 
-import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.OperationType;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
 import com.deneme.influencerinsight.rest.responses.AbstractResponse;
