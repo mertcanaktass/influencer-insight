@@ -34,9 +34,9 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<AbstractResponse<UserDto>> register(@RequestBody RegisterRequest request) {
-        UserDto registeredUser = userService.register(request);
-        AbstractResponse<UserDto> response = new AbstractResponse<>();
+    public ResponseEntity<AbstractResponse<UserResponse>> register(@RequestBody RegisterRequest request) {
+        UserResponse registeredUser = userService.register(request);
+        AbstractResponse<UserResponse> response = new AbstractResponse<>();
         response.setOperationType(OperationType.CREATE_CUSTOMER_USER);
         if (Objects.nonNull(registeredUser)) {
             response.setResponseMessage("User Registered Successfully!");

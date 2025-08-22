@@ -4,6 +4,7 @@ import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.OperationType;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
 import com.deneme.influencerinsight.rest.responses.AbstractResponse;
+import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -30,9 +31,9 @@ public class AdminController {
             description = "Register Admin API is designed for creating new Admin user, this API only works from Admin panel!",
             tags = "Admin User Management"
     )
-    public ResponseEntity<AbstractResponse<UserDto>> registerAdmin(@RequestBody RegisterRequest request) {
-        UserDto registeredUser = userService.registerAdminUser(request);
-        AbstractResponse<UserDto> response = new AbstractResponse<>();
+    public ResponseEntity<AbstractResponse<UserResponse>> registerAdmin(@RequestBody RegisterRequest request) {
+        UserResponse registeredUser = userService.registerAdminUser(request);
+        AbstractResponse<UserResponse> response = new AbstractResponse<>();
         response.setOperationType(OperationType.CREATE_ADMIN_USER);
         if (Objects.nonNull(registeredUser)) {
             response.setResponseMessage("Admin User Registered Successfully!");
@@ -51,9 +52,9 @@ public class AdminController {
             description = "Get All Users API is inquires all users, only Admin users could use this API from Admin panel!",
             tags = {"Admin User Management"}
     )
-    public ResponseEntity<AbstractResponse<List<UserDto>>> getAllUsers() {
-        List<UserDto> userList = userService.getAllUsersDto();
-        AbstractResponse<List<UserDto>> response = new AbstractResponse<>();
+    public ResponseEntity<AbstractResponse<List<UserResponse>>> getAllUsers() {
+        List<UserResponse> userList = userService.getAllUsersDto();
+        AbstractResponse<List<UserResponse>> response = new AbstractResponse<>();
         response.setOperationType(OperationType.INQUIRE_USER);
         if (userList.isEmpty()) {
             response.setResponseMessage("Couldn't find any user!");
@@ -71,12 +72,12 @@ public class AdminController {
             description = "Inquire User API is used for inquire just one user from user id.",
             tags = {"User Management"}
     )
-    public ResponseEntity<AbstractResponse<UserDto>> inquireUser(@PathVariable Long userId) {
-        Optional<UserDto> userDto = userService.inquireUserDto(userId);
-        AbstractResponse<UserDto> response = new AbstractResponse<>();
+    public ResponseEntity<AbstractResponse<UserResponse>> inquireUser(@PathVariable Long userId) {
+        Optional<UserResponse> userResponse = userService.inquireUserDto(userId);
+        AbstractResponse<UserResponse> response = new AbstractResponse<>();
         response.setOperationType(OperationType.INQUIRE_USER);
-        if (userDto.isPresent()) {
-            response.setData(userDto.get());
+        if (userResponse.isPresent()) {
+            response.setData(userResponse.get());
             return new ResponseEntity<>(response, HttpStatus.OK);
         } else {
             response.setData(null);

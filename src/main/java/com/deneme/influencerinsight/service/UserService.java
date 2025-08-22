@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserService {
-    List<UserDto> getAllUsersDto();
+    List<UserResponse> getAllUsersDto();
 
     List<UserResponse> getAllUsers();
 
@@ -25,9 +25,9 @@ public interface UserService {
 
     UserEntity saveUser(UserDto userDto, RoleDto roleDto);
 
-    UserDto registerAdminUser(RegisterRequest request);
+    UserResponse registerAdminUser(RegisterRequest request);
 
-    UserDto register(RegisterRequest registerRequest);
+    UserResponse register(RegisterRequest registerRequest);
 
     JwtResponse login(LoginRequest request, AuthenticationManager authenticationManager, JwtUtil jwtUtil);
 
@@ -37,7 +37,7 @@ public interface UserService {
 
     Optional<UserResponse> inquireUser(Long userId);
 
-    Optional<UserDto> inquireUserDto(Long userId);
+    Optional<UserResponse> inquireUserDto(Long userId);
 
     Optional<UserResponse> inquireUserWithUsername(String username);
 

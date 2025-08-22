@@ -49,10 +49,10 @@ public class UserServiceImpl implements UserService {
     private final TokenBlacklistService tokenBlacklistService;
 
     @Override
-    public List<UserDto> getAllUsersDto() {
+    public List<UserResponse> getAllUsersDto() {
         return userRepository.findAll()
                 .stream()
-                .map(UserMapper::userEntityToUserDto)
+                .map(UserMapper::userEntityToUserResponse)
                 .toList();
     }
 
@@ -80,7 +80,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto register(RegisterRequest request) {
+    public UserResponse register(RegisterRequest request) {
         if (existsByUsername(request.getUsername())) {
             throw new UserAlreadyExistsException("Username already exists: " + request.getUsername());
         }
@@ -101,11 +101,11 @@ public class UserServiceImpl implements UserService {
 
         emailService.sendVerificationEmail(userDto.getEmail(), token);
         UserEntity createdUser = saveUser(userDto, roleDto);
-        return UserMapper.userEntityToUserDto(createdUser);
+        return UserMapper.userEntityToUserResponse(createdUser);
     }
 
     @Override
-    public UserDto registerAdminUser(RegisterRequest request) {
+    public UserResponse registerAdminUser(RegisterRequest request) {
         if (existsByUsername(request.getUsername())) {
             throw new UserAlreadyExistsException("Username already exists: " + request.getUsername());
         }
@@ -119,7 +119,7 @@ public class UserServiceImpl implements UserService {
 
         RoleDto adminRoleDto = roleService.getRoleByType(RoleType.ROLE_ADMIN);
         UserEntity createdUser = saveUser(userDto, adminRoleDto);
-        return UserMapper.userEntityToUserDto(createdUser);
+        return UserMapper.userEntityToUserResponse(createdUser);
     }
 
     @Override
@@ -177,9 +177,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Optional<UserDto> inquireUserDto(Long userId) {
+    public Optional<UserResponse> inquireUserDto(Long userId) {
         return userRepository.findById(userId)
-                .map(UserMapper::userEntityToUserDto);
+                .map(UserMapper::userEntityToUserResponse);
     }
 
     @Override
