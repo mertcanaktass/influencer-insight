@@ -35,6 +35,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/api/auth/**",
                                 "/api/openai/**",
+                                "/api/social-media/**",
                                 "/api/youtube/oauth/url",
                                 "/api/youtube/oauth/callback",
                                 "/api/instagram/oauth/url",

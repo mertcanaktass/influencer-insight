@@ -13,6 +13,7 @@ import com.deneme.influencerinsight.social.SocialPlatformProvider;
 import com.deneme.influencerinsight.social.SocialProviderRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -39,6 +40,7 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
         return SocialMediaAccountMapper.entityToResponse(saved);
     }
 
+    @Transactional
     @Override
     public List<SocialMediaAccountResponse> getAccounts(String username) {
         UserResponse user = userService.inquireUserWithUsername(username)
@@ -60,6 +62,7 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
         socialMediaAccountRepository.delete(account);
     }
 
+    @Transactional
     @Override
     public SocialMediaAccountResponse syncAccount(String username, Long accountId) {
         UserResponse user = userService.inquireUserWithUsername(username)
@@ -83,6 +86,7 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
         }
     }
 
+    @Transactional
     @Override
     public List<SocialMediaAccountResponse> syncAll(String username) {
         UserResponse user = userService.inquireUserWithUsername(username)

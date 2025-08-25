@@ -54,7 +54,8 @@ public class YoutubeOAuthServiceImpl implements YoutubeOAuthService {
                 .queryParam("prompt", "consent")
                 .queryParam("scope", scopes)
                 .queryParam("state", state)
-                .build(true).toUriString();
+                .build()
+                .toUriString();
     }
 
     @Override

@@ -41,6 +41,7 @@ public class SocialMediaAccountEntity {
     private String externalId;
 
     @Lob
+    @Basic(fetch = FetchType.EAGER)
     @Column(name = "extra_data", columnDefinition = "TEXT")
     private String extraData;   // platformdan gelen detaylı analiz için JSON verisi
 

@@ -54,7 +54,8 @@ public class InstagramOAuthServiceImpl implements InstagramOAuthService {
                 .queryParam("response_type", "code")
                 .queryParam("scope", scopes)
                 .queryParam("state", state)
-                .build(true).toUriString();
+                .build()
+                .toUriString();
     }
 
     @Override

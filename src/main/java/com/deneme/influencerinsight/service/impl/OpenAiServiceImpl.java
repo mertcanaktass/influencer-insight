@@ -29,7 +29,7 @@ public class OpenAiServiceImpl implements OpenAiService {
     @Value("${openai.base-url}")
     private String baseUrl;
 
-    @Value("${openai.model:gpt-4o-mini}")
+    @Value("${openai.model}")
     private String defaultModel;
 
     private final RestTemplate restTemplate;
@@ -81,8 +81,8 @@ public class OpenAiServiceImpl implements OpenAiService {
 
         OpenAiResponse ai = chat(req);
 
-        if (ai.getChoices() != null && !ai.getChoices().isEmpty() && ai.getChoices().get(0).getMessage() != null) {
-            return ai.getChoices().get(0).getMessage().getContent();
+        if (ai.getChoices() != null && !ai.getChoices().isEmpty() && ai.getChoices().getFirst().getMessage() != null) {
+            return ai.getChoices().getFirst().getMessage().getContent();
         }
         return "Analiz üretilemedi.";
     }
