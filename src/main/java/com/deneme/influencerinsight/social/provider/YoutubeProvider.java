@@ -5,20 +5,22 @@ import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
 import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
 import com.deneme.influencerinsight.service.YoutubeTokenService;
 import com.deneme.influencerinsight.social.SocialPlatformProvider;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+
+import static com.deneme.influencerinsight.util.JsonUtils.*;
 
 @Component
 @RequiredArgsConstructor
@@ -33,80 +35,88 @@ public class YoutubeProvider implements SocialPlatformProvider {
     }
 
     @Override
-    public String fetchAccountSnapshotJson(String username, String ignoredAccessToken) throws Exception {
-        Optional<SocialMediaAccountEntity> optional = accountRepository
-                .findAllByUserUsernameAndPlatform(username, SocialMediaPlatform.YOUTUBE)
-                .stream().findFirst();
+    public String fetchAccountSnapshotJson(String ownerUsername, String ignoredAccessToken) throws Exception {
+        SocialMediaAccountEntity account = accountRepository
+                .findAllByUserUsernameAndPlatform(ownerUsername, SocialMediaPlatform.YOUTUBE)
+                .stream().findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("YouTube account not linked for user: " + ownerUsername));
 
-        if (optional.isEmpty()) {
-            throw new IllegalArgumentException("YouTube account not linked for user: " + username);
-        }
-
-        SocialMediaAccountEntity account = optional.get();
         String accessToken = youtubeTokenService.ensureValidAccessToken(account);
 
-        String channelJson = getJson(accessToken,
-                "https://www.googleapis.com/youtube/v3/channels?mine=true&part=snippet,statistics,contentDetails");
+        Map<String, Object> channel = getAuthed(
+                "https://www.googleapis.com/youtube/v3/channels",
+                accessToken,
+                Map.of("mine", "true", "part", "snippet,statistics,contentDetails")
+        );
 
-        String uploadsPlaylistId = extractUploadsPlaylistId(channelJson);
-        String playlistItemsJson;
-        if (uploadsPlaylistId == null) {
-            playlistItemsJson = "null";
-        } else {
-            playlistItemsJson = getJson(accessToken,
-                    "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&maxResults=10&playlistId=" + uploadsPlaylistId);
+        String uploadsPlaylistId = extractUploadsPlaylistId(channel);
+
+        Map<String, Object> playlistItems = Map.of();
+        List<String> videoIds = new ArrayList<>();
+        if (uploadsPlaylistId != null) {
+            playlistItems = getAuthed(
+                    "https://www.googleapis.com/youtube/v3/playlistItems",
+                    accessToken,
+                    Map.of("part", "snippet,contentDetails", "maxResults", "10", "playlistId", uploadsPlaylistId)
+            );
+            videoIds = extractVideoIds(playlistItems);
         }
 
-        List<String> videoIds = uploadsPlaylistId == null ? new ArrayList<>() : extractVideoIds(playlistItemsJson);
-
-        String videosJson;
-        if (videoIds.isEmpty()) {
-            videosJson = "[]";
-        } else {
+        Map<String, Object> videos = Map.of();
+        if (!videoIds.isEmpty()) {
             String joined = String.join(",", videoIds);
-            videosJson = getJson(accessToken,
-                    "https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=" + joined);
+            videos = getAuthed(
+                    "https://www.googleapis.com/youtube/v3/videos",
+                    accessToken,
+                    Map.of("part", "snippet,contentDetails,statistics", "id", joined)
+            );
         }
 
-        return "{\"channel\": " + channelJson + ", \"recentPlaylistItems\": " + playlistItemsJson + ", \"videos\": " + videosJson + "}";
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("channel", channel);
+        snapshot.put("recentPlaylistItems", playlistItems);
+        snapshot.put("videos", videos);
+
+        return toJson(snapshot);
     }
 
-    private String getJson(String accessToken, String url) {
-        RestTemplate restTemplate = new RestTemplate();
+    private Map<String, Object> getAuthed(String url, String token, Map<String, String> params) {
+        UriComponentsBuilder b = UriComponentsBuilder.fromUriString(url);
+        params.forEach(b::queryParam);
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-        return response.getBody();
-    }
-
-    private String extractUploadsPlaylistId(String channelJson) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(channelJson);
-        JsonNode items = root.path("items");
-        if (items.isArray() && !items.isEmpty()) {
-            return items.get(0).path("contentDetails").path("relatedPlaylists").path("uploads").asText(null);
-        }
-        return null;
-    }
-
-    private List<String> extractVideoIds(String playlistItemsJson) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(playlistItemsJson);
-        JsonNode items = root.path("items");
-
-        List<String> ids = new ArrayList<>();
-        if (items.isArray()) {
-            Iterator<JsonNode> it = items.elements();
-            while (it.hasNext()) {
-                JsonNode node = it.next();
-                String id = node.path("contentDetails").path("videoId").asText(null);
-                if (id != null) {
-                    ids.add(id);
+        headers.setBearerAuth(token);
+        RestTemplate rt = new RestTemplate();
+        ResponseEntity<Map<String, Object>> res = rt.exchange(
+                b.build(true).toUri(), HttpMethod.GET, new HttpEntity<>(headers),
+                new ParameterizedTypeReference<>() {
                 }
-            }
+        );
+        if (!res.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("GET (auth) failed: " + url + " status=" + res.getStatusCode());
+        }
+        Map<String, Object> body = res.getBody();
+        return body == null ? Map.of() : body;
+    }
+
+    private String extractUploadsPlaylistId(Map<String, Object> channel) {
+        List<Map<String, Object>> items = toListOfMaps(channel.get("items"));
+        if (items.isEmpty()) return null;
+        Map<String, Object> first = items.getFirst();
+        Map<String, Object> contentDetails = toMap(first.get("contentDetails"));
+        Map<String, Object> relatedPlaylists = toMap(contentDetails.get("relatedPlaylists"));
+        String uploads = getString(relatedPlaylists, "uploads");
+        return (uploads == null || uploads.isBlank()) ? null : uploads;
+    }
+
+    private List<String> extractVideoIds(Map<String, Object> playlistItems) {
+        List<Map<String, Object>> items = toListOfMaps(playlistItems.get("items"));
+        List<String> ids = new ArrayList<>();
+        for (Map<String, Object> it : items) {
+            Map<String, Object> cd = toMap(it.get("contentDetails"));
+            String id = getString(cd, "videoId");
+            if (id != null) ids.add(id);
         }
         return ids;
     }
+
 }

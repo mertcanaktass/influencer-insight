@@ -36,7 +36,9 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/openai/**",
                                 "/api/youtube/oauth/url",
-                                "/api/youtube/oauth/callback"
+                                "/api/youtube/oauth/callback",
+                                "/api/instagram/oauth/url",
+                                "/api/instagram/oauth/callback"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

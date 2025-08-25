@@ -65,15 +65,18 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
         UserResponse user = userService.inquireUserWithUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        SocialMediaAccountEntity account = socialMediaAccountRepository.findByIdAndUser(accountId, userResponseToEntity(user))
+        SocialMediaAccountEntity account = socialMediaAccountRepository
+                .findByIdAndUser(accountId, userResponseToEntity(user))
                 .orElseThrow(() -> new ResourceNotFoundException("Social media account not found"));
 
         SocialPlatformProvider provider = providerRegistry.getProvider(account.getPlatform());
         try {
-            String json = provider.fetchAccountSnapshotJson(account.getUsername(), account.getAccessToken());
+            String json = provider.fetchAccountSnapshotJson(username, account.getAccessToken());
+
             account.setExtraData(json);
             account.setLastSyncedAt(Instant.now());
             socialMediaAccountRepository.save(account);
+
             return SocialMediaAccountMapper.entityToResponse(account);
         } catch (Exception e) {
             throw new RuntimeException("Sync failed: " + e.getMessage(), e);
@@ -86,17 +89,23 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
         List<SocialMediaAccountEntity> accounts = socialMediaAccountRepository.findAllByUser(userResponseToEntity(user));
+
         for (SocialMediaAccountEntity account : accounts) {
             SocialPlatformProvider provider = providerRegistry.getProvider(account.getPlatform());
             try {
-                String json = provider.fetchAccountSnapshotJson(account.getUsername(), account.getAccessToken());
+                String json = provider.fetchAccountSnapshotJson(username, account.getAccessToken());
+
                 account.setExtraData(json);
                 account.setLastSyncedAt(Instant.now());
             } catch (Exception e) {
                 throw new RuntimeException("Sync failed: " + e.getMessage(), e);
             }
         }
+
         socialMediaAccountRepository.saveAll(accounts);
-        return accounts.stream().map(SocialMediaAccountMapper::entityToResponse).toList();
+        return accounts.stream()
+                .map(SocialMediaAccountMapper::entityToResponse)
+                .toList();
     }
+
 }

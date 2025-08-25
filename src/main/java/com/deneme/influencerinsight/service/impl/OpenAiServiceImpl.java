@@ -47,7 +47,7 @@ public class OpenAiServiceImpl implements OpenAiService {
         ResponseEntity<OpenAiResponse> response;
         try {
             response = restTemplate.exchange(
-                    baseUrl + "/v1/chat/completions",
+                    baseUrl + "/chat/completions",
                     HttpMethod.POST,
                     entity,
                     OpenAiResponse.class

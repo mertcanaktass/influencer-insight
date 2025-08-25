@@ -1,11 +1,11 @@
 package com.deneme.influencerinsight.dto;
 
-import com.deneme.influencerinsight.enums.Status;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import org.springframework.stereotype.Component;
-
-import java.util.Date;
 
 @Component
 @Getter

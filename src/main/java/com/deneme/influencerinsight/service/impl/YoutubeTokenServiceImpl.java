@@ -6,12 +6,7 @@ import com.deneme.influencerinsight.service.YoutubeTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -19,6 +14,8 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.deneme.influencerinsight.util.HttpUtils.postForm;
 
 @Service
 @RequiredArgsConstructor
@@ -61,33 +58,37 @@ public class YoutubeTokenServiceImpl implements YoutubeTokenService {
                 "grant_type", "refresh_token"
         );
 
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        String body = toFormData(form.keySet(), form);
-        HttpEntity<String> entity = new HttpEntity<>(body, headers);
-
-        Map<String, Object> tokenBody = restTemplate.exchange(
+        Map<String, Object> tokenBody = postForm(
                 "https://oauth2.googleapis.com/token",
-                HttpMethod.POST,
-                entity,
-                new ParameterizedTypeReference<Map<String, Object>>() {
+                toFormData(form.keySet(), form),
+                new ParameterizedTypeReference<>() {
                 }
-        ).getBody();
+        );
 
-        if (tokenBody == null || tokenBody.get("access_token") == null) {
+        if (tokenBody.get("access_token") == null) {
             throw new RuntimeException("Failed to refresh access token.");
         }
 
-        String newAccessToken = tokenBody.get("access_token").toString();
-        Integer expiresInSeconds = tokenBody.get("expires_in") instanceof Integer
-                ? (Integer) tokenBody.get("expires_in")
-                : null;
+        String newAccessToken = String.valueOf(tokenBody.get("access_token"));
+
+        Object expObj = tokenBody.get("expires_in");
+        Integer expiresInSeconds = null;
+        if (expObj instanceof Integer i) {
+            expiresInSeconds = i;
+        } else if (expObj instanceof String s && !s.isBlank()) {
+            try {
+                expiresInSeconds = Integer.parseInt(s);
+            } catch (NumberFormatException ignored) { /* no-op */ }
+        }
 
         account.setAccessToken(newAccessToken);
+
+        Instant newExpiry = null;
         if (expiresInSeconds != null) {
-            account.setTokenExpiresAt(Instant.now().plusSeconds(expiresInSeconds));
+            newExpiry = Instant.now().plusSeconds(expiresInSeconds);
+        }
+        if (newExpiry != null) {
+            account.setTokenExpiresAt(newExpiry);
         }
 
         accountRepository.save(account);

@@ -21,16 +21,16 @@ public class SocialMediaAccountMapper {
                 .build();
     }
 
-    public static SocialMediaAccountResponse entityToResponse(SocialMediaAccountEntity e) {
-        if (e == null) return null;
+    public static SocialMediaAccountResponse entityToResponse(SocialMediaAccountEntity entity) {
+        if (entity == null) return null;
         return SocialMediaAccountResponse.builder()
-                .id(e.getId())
-                .platform(e.getPlatform())
-                .username(e.getUsername())
-                .profileUrl(e.getProfileUrl())
-                .hasAccessToken(e.getAccessToken() != null && !e.getAccessToken().isBlank())
-                .extraData(e.getExtraData())
-                .lastSyncedAt(e.getLastSyncedAt())
+                .id(entity.getId())
+                .platform(entity.getPlatform())
+                .username(entity.getUsername())
+                .profileUrl(entity.getProfileUrl())
+                .hasAccessToken(entity.getAccessToken() != null && !entity.getAccessToken().isBlank())
+                .extraData(entity.getExtraData())
+                .lastSyncedAt(entity.getLastSyncedAt())
                 .build();
     }
 }
