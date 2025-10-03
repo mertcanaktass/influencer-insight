@@ -17,4 +17,6 @@ public interface SocialMediaAccountRepository extends JpaRepository<SocialMediaA
     List<SocialMediaAccountEntity> findAllByUserUsername(String username);
 
     List<SocialMediaAccountEntity> findAllByUserUsernameAndPlatform(String username, SocialMediaPlatform platform);
+
+    Optional<SocialMediaAccountEntity> findFirstByUsernameAndPlatform(String user, SocialMediaPlatform platform);
 }
