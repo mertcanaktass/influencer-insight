@@ -6,6 +6,8 @@ import com.deneme.influencerinsight.service.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 
@@ -39,5 +41,11 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
             return false;
         }
         return tokenBlacklistRepository.existsByToken(token);
+    }
+
+    @Scheduled(fixedDelayString = "${app.maintenance.cleanup-delay-ms:3600000}")
+    @Transactional
+    public void deleteExpiredTokens() {
+        tokenBlacklistRepository.deleteByExpirationDateBefore(new Date());
     }
 }

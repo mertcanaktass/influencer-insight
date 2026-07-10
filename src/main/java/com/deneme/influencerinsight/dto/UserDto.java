@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @SuperBuilder
@@ -16,5 +18,6 @@ public class UserDto extends AbstractDto {
     private String email;
     private Boolean emailVerified;
     private String verificationToken;
+    private Instant verificationTokenExpiresAt;
     private RoleEntity roleEntity;
 }

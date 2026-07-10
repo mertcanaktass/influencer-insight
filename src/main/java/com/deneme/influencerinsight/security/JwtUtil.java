@@ -17,14 +17,11 @@ import java.util.Date;
 public class JwtUtil {
 
     private final Long accessTokenExpirationMs;
-    private final Long refreshTokenExpirationMs;
     private final SecretKey secretKey;
 
     public JwtUtil(@Value("${jwt.access-token.expiration-ms}") Long accessTokenExpirationMs,
-                   @Value("${jwt.refresh-token.expiration-ms}") Long refreshTokenExpirationMs,
                    @Value("${jwt.secret}") String secretBase64) {
         this.accessTokenExpirationMs = accessTokenExpirationMs;
-        this.refreshTokenExpirationMs = refreshTokenExpirationMs;
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretBase64));
     }
 
@@ -36,15 +33,6 @@ public class JwtUtil {
                         .toList())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpirationMs)) // 15 min
-                .signWith(secretKey, SignatureAlgorithm.HS256)
-                .compact();
-    }
-
-    public String generateRefreshToken(UserDetails userDetails) {
-        return Jwts.builder()
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpirationMs)) // 7 days
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }

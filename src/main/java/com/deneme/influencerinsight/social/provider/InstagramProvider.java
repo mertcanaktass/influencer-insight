@@ -1,8 +1,8 @@
 package com.deneme.influencerinsight.social.provider;
 
 import com.deneme.influencerinsight.enums.SocialMediaPlatform;
+import com.deneme.influencerinsight.integration.ExternalApiClient;
 import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
-import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
 import com.deneme.influencerinsight.service.InstagramTokenService;
 import com.deneme.influencerinsight.social.SocialPlatformProvider;
 import lombok.RequiredArgsConstructor;
@@ -15,15 +15,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.deneme.influencerinsight.util.HttpUtils.getAuthed;
 import static com.deneme.influencerinsight.util.JsonUtils.*;
 
 @Component
 @RequiredArgsConstructor
 public class InstagramProvider implements SocialPlatformProvider {
 
-    private final SocialMediaAccountRepository accountRepository;
     private final InstagramTokenService instagramTokenService;
+    private final ExternalApiClient externalApiClient;
 
     @Value("${instagram.graph-version:v21.0}")
     private String graphVer;
@@ -34,31 +33,28 @@ public class InstagramProvider implements SocialPlatformProvider {
     }
 
     @Override
-    public String fetchAccountSnapshotJson(String ownerUsername, String ignoredAccessToken) {
-        SocialMediaAccountEntity account = accountRepository
-                .findAllByUserUsernameAndPlatform(ownerUsername, SocialMediaPlatform.INSTAGRAM)
-                .stream().findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Instagram account not linked for user: " + ownerUsername));
-
+    public String fetchAccountSnapshotJson(SocialMediaAccountEntity account) {
         String token = instagramTokenService.ensureValidAccessToken(account);
         String igUserId = account.getExternalId();
         if (igUserId == null || igUserId.isBlank()) {
             throw new IllegalStateException("Missing ig_user_id on account.");
         }
 
-        Map<String, Object> profile = getAuthed(
+        Map<String, Object> profile = externalApiClient.get(
+                "Facebook Graph API",
                 "https://graph.facebook.com/" + graphVer + "/" + igUserId,
-                token,
                 Map.of("fields", "username,profile_picture_url,followers_count,follows_count,media_count,name"),
+                token,
                 new ParameterizedTypeReference<>() {
                 }
         );
 
-        Map<String, Object> media = getAuthed(
+        Map<String, Object> media = externalApiClient.get(
+                "Facebook Graph API",
                 "https://graph.facebook.com/" + graphVer + "/" + igUserId + "/media",
-                token,
                 Map.of("fields", "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count",
                         "limit", "10"),
+                token,
                 new ParameterizedTypeReference<>() {
                 }
         );
@@ -68,10 +64,11 @@ public class InstagramProvider implements SocialPlatformProvider {
         for (int i = 0; i < Math.min(5, mediaList.size()); i++) {
             String mediaId = getString(mediaList.get(i), "id");
             if (mediaId == null) continue;
-            Map<String, Object> ins = getAuthed(
+            Map<String, Object> ins = externalApiClient.get(
+                    "Facebook Graph API",
                     "https://graph.facebook.com/" + graphVer + "/" + mediaId + "/insights",
-                    token,
                     Map.of("metric", "impressions,reach,engagement", "period", "lifetime"),
+                    token,
                     new ParameterizedTypeReference<>() {
                     }
             );

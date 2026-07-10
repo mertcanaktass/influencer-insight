@@ -15,7 +15,7 @@ public class RoleMapper {
         if (entity == null) return null;
         return RoleDto.builder()
                 .id(entity.getId())
-                .roleType(RoleType.getRoleTypeById(entity.getId()))
+                .roleType(entity.getRoleType())
                 .status(Status.getStatusById(entity.getStatus()))
                 .build();
     }

@@ -10,6 +10,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
@@ -19,10 +22,13 @@ public class EmailServiceImpl implements EmailService {
     @Value("${spring.mail.username}")
     private String fromAddress;
 
+    @Value("${app.email.verification-base-url}")
+    private String verificationBaseUrl;
+
     @Override
     public void sendVerificationEmail(String to, String token) {
         String subject = "E-posta Doğrulama";
-        String verificationUrl = "http://localhost:8080/api/auth/verify-email?token=" + token;
+        String verificationUrl = verificationBaseUrl + "?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8);
         String content = """
                 <p>Merhaba,</p>
                 <p>Hesabınızı doğrulamak için aşağıdaki bağlantıya tıklayın:</p>

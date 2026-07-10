@@ -2,20 +2,21 @@ package com.deneme.influencerinsight.service.impl;
 
 import com.deneme.influencerinsight.dto.OpenAiMessageDto;
 import com.deneme.influencerinsight.exception.OpenAiException;
+import com.deneme.influencerinsight.integration.ExternalApiClient;
 import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
 import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
 import com.deneme.influencerinsight.rest.requests.OpenAiRequest;
 import com.deneme.influencerinsight.rest.responses.openapi.OpenAiResponse;
 import com.deneme.influencerinsight.service.OpenAiService;
+import com.deneme.influencerinsight.service.AiRateLimitService;
 import com.deneme.influencerinsight.service.SocialMediaAccountService;
 import com.deneme.influencerinsight.util.PromptBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
+import java.net.URI;
 import java.util.List;
 
 @Service
@@ -32,38 +33,29 @@ public class OpenAiServiceImpl implements OpenAiService {
     @Value("${openai.model}")
     private String defaultModel;
 
-    private final RestTemplate restTemplate;
+    private final ExternalApiClient externalApiClient;
     private final SocialMediaAccountService socialMediaAccountService;
     private final SocialMediaAccountRepository socialMediaAccountRepository;
+    private final AiRateLimitService aiRateLimitService;
 
     @Override
     public OpenAiResponse chat(OpenAiRequest request) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(apiKey);
-
-        HttpEntity<OpenAiRequest> entity = new HttpEntity<>(request, headers);
-
-        ResponseEntity<OpenAiResponse> response;
+        request.setModel(defaultModel);
         try {
-            response = restTemplate.exchange(
-                    baseUrl + "/chat/completions",
-                    HttpMethod.POST,
-                    entity,
-                    OpenAiResponse.class
-            );
+            return externalApiClient.postJson(
+                    "OpenAI",
+                    URI.create(baseUrl + "/chat/completions"),
+                    apiKey,
+                    request,
+                    OpenAiResponse.class);
         } catch (Exception ex) {
             throw new OpenAiException("Error while calling OpenAI API", ex);
         }
-
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            return response.getBody();
-        }
-        throw new OpenAiException("OpenAI API request failed with status: " + response.getStatusCode());
     }
 
     @Override
     public String analyze(String username, String userPrompt) {
+        aiRateLimitService.checkLimit(username);
         socialMediaAccountService.syncAll(username);
 
         List<SocialMediaAccountEntity> accounts = socialMediaAccountRepository.findAllByUserUsername(username);

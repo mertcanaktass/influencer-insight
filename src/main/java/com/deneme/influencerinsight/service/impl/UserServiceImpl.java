@@ -16,11 +16,13 @@ import com.deneme.influencerinsight.rest.responses.JwtResponse;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.security.JwtUtil;
 import com.deneme.influencerinsight.service.EmailService;
+import com.deneme.influencerinsight.service.RefreshTokenService;
 import com.deneme.influencerinsight.service.RoleService;
 import com.deneme.influencerinsight.service.TokenBlacklistService;
 import com.deneme.influencerinsight.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,11 +31,13 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +49,10 @@ public class UserServiceImpl implements UserService {
     private final EmailService emailService;
     private final UserDetailsService userDetailsService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final RefreshTokenService refreshTokenService;
+
+    @Value("${app.email.verification-token-ttl-seconds:86400}")
+    private long verificationTokenTtlSeconds;
 
     @Override
     public List<UserResponse> getAllUsersDto() {
@@ -64,6 +72,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
+    }
+
+    @Override
+    public UserEntity getRequiredUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
     }
 
     @Override
@@ -90,6 +104,8 @@ public class UserServiceImpl implements UserService {
                 .email(request.getEmail())
                 .emailVerified(false)
                 .verificationToken(token)
+                .verificationTokenExpiresAt(Instant.now().plusSeconds(verificationTokenTtlSeconds))
+                .status(Status.PASSIVE)
                 .status(Status.getStatusByShortCode("passive")) // Kullanıcı kayıt olduğunda statu 0 (pasif)
                 .createDate(new Date())
                 .build();
@@ -112,6 +128,7 @@ public class UserServiceImpl implements UserService {
                 .password(request.getPassword())
                 .email(request.getEmail())
                 .emailVerified(true)
+                .status(Status.ACTIVE)
                 .build();
 
         RoleDto adminRoleDto = roleService.getRoleByType(RoleType.ROLE_ADMIN);
@@ -138,7 +155,9 @@ public class UserServiceImpl implements UserService {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
         String accessToken = jwtUtil.generateAccessToken(userDetails);
-        String refreshToken = jwtUtil.generateRefreshToken(userDetails);
+        UserEntity user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found!"));
+        String refreshToken = refreshTokenService.createRefreshToken(user);
 
         return new JwtResponse(accessToken, refreshToken);
     }
@@ -150,21 +169,21 @@ public class UserServiceImpl implements UserService {
             String token = authHeader.substring(7);
             Date expirationDate = jwtUtil.getExpirationDate(token);
             tokenBlacklistService.blacklistToken(token, expirationDate);
+
+            String username = jwtUtil.extractUsername(token);
+            userRepository.findByUsername(username).ifPresent(refreshTokenService::revokeTokensForUser);
         }
     }
 
     @Override
+    @Transactional
     public JwtResponse refreshToken(TokenRefreshRequest request,
                                     JwtUtil jwtUtil) {
-        String username = jwtUtil.extractUsername(request.getRefreshToken());
-        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-        if (!jwtUtil.isTokenExpired(request.getRefreshToken())) {
-            String newAccessToken = jwtUtil.generateAccessToken(userDetails);
-            return new JwtResponse(newAccessToken, request.getRefreshToken());
-        } else {
-            throw new AccessDeniedException("Refresh token has expired. Please login again.");
-        }
+        UserEntity user = refreshTokenService.consumeRefreshToken(request.getRefreshToken());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+        String newAccessToken = jwtUtil.generateAccessToken(userDetails);
+        String newRefreshToken = refreshTokenService.createRefreshToken(user);
+        return new JwtResponse(newAccessToken, newRefreshToken);
     }
 
     @Override
@@ -195,8 +214,8 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        user.setUpdateDate(new Date());
         userRepository.save(user);
+        refreshTokenService.revokeTokensForUser(user);
     }
 
     @Override
@@ -208,9 +227,18 @@ public class UserServiceImpl implements UserService {
             throw new IllegalStateException("Email is already verified.");
         }
 
+        if (user.getVerificationTokenExpiresAt() == null
+                || user.getVerificationTokenExpiresAt().isBefore(Instant.now())) {
+            user.setVerificationToken(null);
+            user.setVerificationTokenExpiresAt(null);
+            userRepository.save(user);
+            throw new IllegalArgumentException("Verification token has expired.");
+        }
+
         user.setEmailVerified(true);
         user.setStatus(1); // Kullanıcı eğer email doğrulamasını başarılı şekilde yaptıysa statu 1'e (aktif) alınır.
         user.setVerificationToken(null);
+        user.setVerificationTokenExpiresAt(null);
         userRepository.save(user);
     }
 }

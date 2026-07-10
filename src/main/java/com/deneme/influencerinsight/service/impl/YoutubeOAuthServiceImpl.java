@@ -3,7 +3,9 @@ package com.deneme.influencerinsight.service.impl;
 import com.deneme.influencerinsight.enums.SocialMediaPlatform;
 import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
 import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
-import com.deneme.influencerinsight.rest.responses.UserResponse;
+import com.deneme.influencerinsight.model.UserEntity;
+import com.deneme.influencerinsight.integration.ExternalApiClient;
+import com.deneme.influencerinsight.security.SocialTokenCipher;
 import com.deneme.influencerinsight.service.UserService;
 import com.deneme.influencerinsight.service.YoutubeOAuthService;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.deneme.influencerinsight.mapper.UserMapper.userResponseToEntity;
-import static com.deneme.influencerinsight.util.HttpUtils.getAuthed;
-import static com.deneme.influencerinsight.util.HttpUtils.postForm;
 import static com.deneme.influencerinsight.util.JsonUtils.*;
 
 @Service
@@ -40,6 +39,8 @@ public class YoutubeOAuthServiceImpl implements YoutubeOAuthService {
 
     private final UserService userService;
     private final SocialMediaAccountRepository accountRepo;
+    private final ExternalApiClient externalApiClient;
+    private final SocialTokenCipher socialTokenCipher;
 
     @Override
     public String buildAuthorizationUrl(String state) {
@@ -72,7 +73,8 @@ public class YoutubeOAuthServiceImpl implements YoutubeOAuthService {
                 "grant_type", "authorization_code"
         );
 
-        Map<String, Object> tokenBody = postForm(
+        Map<String, Object> tokenBody = externalApiClient.postForm(
+                "Google OAuth",
                 "https://oauth2.googleapis.com/token",
                 toFormData(form),
                 new ParameterizedTypeReference<>() {
@@ -103,10 +105,11 @@ public class YoutubeOAuthServiceImpl implements YoutubeOAuthService {
             expiresAt = Instant.now().plusSeconds(expiresIn);
         }
 
-        Map<String, Object> channel = getAuthed(
+        Map<String, Object> channel = externalApiClient.get(
+                "YouTube Data API",
                 "https://www.googleapis.com/youtube/v3/channels",
-                accessToken,
                 Map.of("mine", "true", "part", "snippet,statistics,contentDetails"),
+                accessToken,
                 new ParameterizedTypeReference<>() {
                 }
         );
@@ -115,8 +118,7 @@ public class YoutubeOAuthServiceImpl implements YoutubeOAuthService {
         String channelTitle = extractChannelTitle(channel);
         String channelUrl = (channelId != null) ? "https://www.youtube.com/channel/" + channelId : null;
 
-        UserResponse userResponse = userService.inquireUserWithUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        UserEntity user = userService.getRequiredUserByUsername(username);
 
         SocialMediaAccountEntity socialMediaAccountEntity = accountRepo
                 .findAllByUserUsernameAndPlatform(username, SocialMediaPlatform.YOUTUBE)
@@ -124,12 +126,12 @@ public class YoutubeOAuthServiceImpl implements YoutubeOAuthService {
                 .findFirst()
                 .orElseGet(() -> SocialMediaAccountEntity.builder()
                         .platform(SocialMediaPlatform.YOUTUBE)
-                        .user(userResponseToEntity(userResponse))
+                        .user(user)
                         .build());
 
-        socialMediaAccountEntity.setAccessToken(accessToken);
+        socialMediaAccountEntity.setAccessToken(socialTokenCipher.encrypt(accessToken));
         if (refreshToken != null) {
-            socialMediaAccountEntity.setRefreshToken(refreshToken);
+            socialMediaAccountEntity.setRefreshToken(socialTokenCipher.encrypt(refreshToken));
         }
         socialMediaAccountEntity.setTokenExpiresAt(expiresAt);
         socialMediaAccountEntity.setExternalId(channelId);
