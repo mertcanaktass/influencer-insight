@@ -3,7 +3,9 @@ package com.deneme.influencerinsight.service.impl;
 import com.deneme.influencerinsight.enums.SocialMediaPlatform;
 import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
 import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
+import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.service.TiktokOAuthService;
+import com.deneme.influencerinsight.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -18,11 +20,14 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
 
+import static com.deneme.influencerinsight.mapper.UserMapper.userResponseToEntity;
+
 @Service
 @RequiredArgsConstructor
 public class TiktokOAuthServiceImpl implements TiktokOAuthService {
 
     private final SocialMediaAccountRepository accountRepository;
+    private final UserService userService;
     private final RestClient rest = RestClient.create();
     
     @Value("${tiktok.client-key}")
@@ -57,6 +62,10 @@ public class TiktokOAuthServiceImpl implements TiktokOAuthService {
 
     @Transactional
     public SocialMediaAccountEntity exchangeCodeAndPersist(String appUsername, String stateIgnored, String code) {
+        if (appUsername == null || appUsername.isBlank()) {
+            throw new IllegalArgumentException("Missing username (state).");
+        }
+
         var form = new LinkedMultiValueMap<String, String>();
         form.add("client_key", clientKey);
         form.add("client_secret", clientSecret);
@@ -80,10 +89,17 @@ public class TiktokOAuthServiceImpl implements TiktokOAuthService {
         Number expiresInSec = (Number) resp.getOrDefault("expires_in", 3600);
         String openId = (String) resp.get("open_id");
 
+        // user_id NOT NULL olduğu için hesabı sahibine bağla; ayrıca lookup'ı
+        // Instagram/YouTube ile aynı anahtara (user.username + platform) getir.
+        UserResponse user = userService.inquireUserWithUsername(appUsername)
+                .orElseThrow(() -> new RuntimeException("User not found: " + appUsername));
+
         SocialMediaAccountEntity account = accountRepository
-                .findFirstByUsernameAndPlatform(appUsername, SocialMediaPlatform.TIKTOK)
+                .findAllByUserUsernameAndPlatform(appUsername, SocialMediaPlatform.TIKTOK)
+                .stream().findFirst()
                 .orElseGet(() -> SocialMediaAccountEntity.builder()
                         .platform(SocialMediaPlatform.TIKTOK)
+                        .user(userResponseToEntity(user))
                         .username(appUsername)
                         .build());
 

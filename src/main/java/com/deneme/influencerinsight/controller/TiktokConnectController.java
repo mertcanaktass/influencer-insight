@@ -15,7 +15,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 @RestController
-@RequestMapping("api/v1/tiktok/oauth")
+@RequestMapping("/api/tiktok/oauth")
 @RequiredArgsConstructor
 public class TiktokConnectController {
     private final TiktokOAuthService oAuthService;
