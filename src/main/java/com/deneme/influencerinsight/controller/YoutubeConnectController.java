@@ -20,7 +20,8 @@ public class YoutubeConnectController {
 
     @GetMapping("/url")
     public ResponseEntity<Map<String, String>> getAuthorizationUrl(Authentication authentication) {
-        String state = authentication.getName(); // basit test için
+        // Uç permitAll; token'sız çağrıda authentication null olabilir (NPE'yi önle).
+        String state = authentication != null ? authentication.getName() : "anonymous";
         String url = youtubeOAuthService.buildAuthorizationUrl(state);
         return ResponseEntity.ok(Map.of("authUrl", url));
     }

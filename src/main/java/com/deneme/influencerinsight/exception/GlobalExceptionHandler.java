@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    /**
+     * Kimlik doğrulama hataları (yanlış kullanıcı adı/şifre). 401 döner ve
+     * kullanıcının var olup olmadığını sızdırmamak için generic mesaj kullanır
+     * (user enumeration önlenir). BadCredentials/UsernameNotFound bu tipe girer.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, String>> handleAuthentication(AuthenticationException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Geçersiz kullanıcı adı veya şifre.");
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
