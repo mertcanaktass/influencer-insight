@@ -24,7 +24,7 @@ import static com.deneme.influencerinsight.util.JsonUtils.toJson;
 @RequiredArgsConstructor
 public class TiktokProvider implements SocialPlatformProvider {
 
-    private SocialMediaAccountRepository accountRepository;
+    private final SocialMediaAccountRepository accountRepository;
     private final TiktokTokenService tiktokTokenService;
 
     private static final String BASE = "https://open.tiktokapis.com";
