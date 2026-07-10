@@ -16,7 +16,7 @@ ve geliştirme sırasını tanımlar. Genel teknoloji kararları için
 | 6 | Hesap Bağla (OAuth) | `/accounts` içinde panel | `GET /api/instagram/oauth/url`, `GET /api/youtube/oauth/url`, `GET api/v1/tiktok/oauth/auth` | Platform yetkilendirme akışını başlat | 🟡 IG+YT yapıldı; TikTok backend bekliyor |
 | 7 | AI Analiz | `/analyze` | `POST /api/openai/analyze` | Bağlı hesap için AI içgörüsü üret | ✅ Yapıldı |
 | 8 | Profil / Ayarlar | `/profile` | `GET /api/auth/profile/{username}`, `PUT /api/auth/change-password` | Profil görüntüleme, şifre değiştirme | ✅ Yapıldı |
-| 9 | Admin Paneli | `/admin` | `GET /api/admin/users`, `GET /api/admin/inquireUser/{userId}` | (ADMIN) kullanıcı listeleme/detay | ⬜ (2. öncelik) |
+| 9 | Admin Paneli | `/admin` | `GET /api/admin/users`, `GET /api/admin/inquireUser/{userId}` | (ADMIN) kullanıcı listeleme/detay | ✅ Yapıldı |
 
 ## Geliştirme Sırası
 
@@ -34,7 +34,9 @@ ve geliştirme sırasını tanımlar. Genel teknoloji kararları için
    için sadece prompt gönderilir).
 6. **Profil / Ayarlar** ✅ — Profil görüntüleme + şifre değiştirme
    (username, JWT subject'inden çözülür).
-7. **Admin Paneli** — En son, rol bazlı erişimle.
+7. **Admin Paneli** ✅ — Rol bazlı erişim (`AdminGuard`, JWT `authorities`
+   claim'inden `ROLE_ADMIN`); kullanıcı listeleme + detay. Admin nav linki
+   yalnızca yetkili kullanıcıya görünür.
 
 ## OAuth Notları (Backend Davranışı)
 
