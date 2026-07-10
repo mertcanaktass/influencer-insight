@@ -14,7 +14,7 @@ ve geliştirme sırasını tanımlar. Genel teknoloji kararları için
 | 4 | Dashboard / Ana | `/` | (özet için 5. ve 7.'yi kullanır) | Genel bakış, hızlı erişim | 🟡 Basit shell var |
 | 5 | Sosyal Hesaplar | `/accounts` | `GET/POST/DELETE /api/social-media`, `POST /api/social-media/{id}/sync`, `POST /api/social-media/sync` | Bağlı hesapları listele, ekle, sil, senkronize et | ✅ Yapıldı |
 | 6 | Hesap Bağla (OAuth) | `/accounts` içinde panel | `GET /api/instagram/oauth/url`, `GET /api/youtube/oauth/url`, `GET api/v1/tiktok/oauth/auth` | Platform yetkilendirme akışını başlat | 🟡 IG+YT yapıldı; TikTok backend bekliyor |
-| 7 | AI Analiz | `/analyze` | `POST /api/openai/analyze` | Bağlı hesap için AI içgörüsü üret | ⬜ |
+| 7 | AI Analiz | `/analyze` | `POST /api/openai/analyze` | Bağlı hesap için AI içgörüsü üret | ✅ Yapıldı |
 | 8 | Profil / Ayarlar | `/profile` | `GET /api/auth/profile/{username}`, `PUT /api/auth/change-password` | Profil görüntüleme, şifre değiştirme | ⬜ |
 | 9 | Admin Paneli | `/admin` | `GET /api/admin/users`, `GET /api/admin/inquireUser/{userId}` | (ADMIN) kullanıcı listeleme/detay | ⬜ (2. öncelik) |
 
@@ -29,7 +29,9 @@ ve geliştirme sırasını tanımlar. Genel teknoloji kararları için
 4. **Hesap Bağla (OAuth)** 🟡 — Instagram/YouTube butonları `/accounts`
    içindeki panelde hazır; TikTok, backend'deki yol tutarsızlığı çözülene
    kadar devre dışı (aşağıdaki "OAuth Notları"na göre).
-5. **AI Analiz (`/analyze`)** — Prompt gönder, dönen analizi göster.
+5. **AI Analiz (`/analyze`)** ✅ — Prompt gönder, dönen analizi göster
+   (uzun sürebileceği için loading state; hesabı backend otomatik seçtiği
+   için sadece prompt gönderilir).
 6. **Profil / Ayarlar** — Profil + şifre değiştirme.
 7. **Admin Paneli** — En son, rol bazlı erişimle.
 
