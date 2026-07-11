@@ -1,6 +1,7 @@
 package com.deneme.influencerinsight.model;
 
 import com.deneme.influencerinsight.enums.UserStatus;
+import com.deneme.influencerinsight.enums.ThemePreference;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -39,6 +40,11 @@ public class UserEntity extends AbstractEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "account_status", nullable = false, length = 32)
     private UserStatus accountStatus;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "theme_preference", nullable = false, length = 16)
+    private ThemePreference themePreference = ThemePreference.SYSTEM;
 
     @Column(name = "verification_token")
     private String verificationToken;

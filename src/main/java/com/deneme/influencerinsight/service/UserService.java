@@ -2,6 +2,7 @@ package com.deneme.influencerinsight.service;
 
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
+import com.deneme.influencerinsight.enums.ThemePreference;
 import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.rest.requests.LoginRequest;
 import com.deneme.influencerinsight.rest.requests.PasswordChangeRequest;
@@ -46,4 +47,8 @@ public interface UserService {
     void changePassword(String username, PasswordChangeRequest request);
 
     void verifyUserEmail(String token);
+
+    ThemePreference getThemePreference(String username);
+
+    ThemePreference updateThemePreference(String username, ThemePreference preference);
 }

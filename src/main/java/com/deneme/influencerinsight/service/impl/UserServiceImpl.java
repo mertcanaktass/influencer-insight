@@ -4,6 +4,7 @@ import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.RoleType;
 import com.deneme.influencerinsight.enums.UserStatus;
+import com.deneme.influencerinsight.enums.ThemePreference;
 import com.deneme.influencerinsight.exception.UserAlreadyExistsException;
 import com.deneme.influencerinsight.exception.EmailVerificationRequiredException;
 import com.deneme.influencerinsight.mapper.UserMapper;
@@ -237,5 +238,18 @@ public class UserServiceImpl implements UserService {
         user.setVerificationToken(null);
         user.setVerificationTokenExpiresAt(null);
         userRepository.save(user);
+    }
+
+    @Override
+    public ThemePreference getThemePreference(String username) {
+        return getRequiredUserByUsername(username).getThemePreference();
+    }
+
+    @Override
+    @Transactional
+    public ThemePreference updateThemePreference(String username, ThemePreference preference) {
+        UserEntity user = getRequiredUserByUsername(username);
+        user.setThemePreference(preference);
+        return preference;
     }
 }
