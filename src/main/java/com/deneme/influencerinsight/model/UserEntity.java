@@ -46,6 +46,12 @@ public class UserEntity extends AbstractEntity {
     @Column(name = "theme_preference", nullable = false, length = 16)
     private ThemePreference themePreference = ThemePreference.SYSTEM;
 
+    @Column(name = "social_connection_consent_version", length = 64)
+    private String socialConnectionConsentVersion;
+
+    @Column(name = "social_connection_consent_at")
+    private Instant socialConnectionConsentAt;
+
     @Column(name = "verification_token")
     private String verificationToken;
 

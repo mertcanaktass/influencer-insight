@@ -5,6 +5,7 @@ import com.deneme.influencerinsight.service.OAuthStateService;
 import com.deneme.influencerinsight.service.OAuthStateData;
 import com.deneme.influencerinsight.service.OAuthRedirectService;
 import com.deneme.influencerinsight.service.TiktokOAuthService;
+import com.deneme.influencerinsight.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,9 +27,11 @@ public class TiktokConnectController {
     private final TiktokOAuthService tiktokOAuthService;
     private final OAuthStateService oauthStateService;
     private final OAuthRedirectService oauthRedirectService;
+    private final UserService userService;
 
     @GetMapping("/url")
     public ResponseEntity<Map<String, String>> getAuthorizationUrl(Authentication authentication) {
+        userService.requireSocialConnectionConsent(authentication.getName());
         String codeVerifier = tiktokOAuthService.generateCodeVerifier();
         String state = oauthStateService.createState(
                 authentication.getName(), SocialMediaPlatform.TIKTOK, codeVerifier);

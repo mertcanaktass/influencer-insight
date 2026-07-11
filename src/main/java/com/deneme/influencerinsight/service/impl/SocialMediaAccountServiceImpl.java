@@ -36,6 +36,7 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
 
     @Override
     public SocialMediaAccountResponse addAccount(String username, SocialMediaAccountRequest request) {
+        userService.requireSocialConnectionConsent(username);
         UserEntity user = userService.getRequiredUserByUsername(username);
 
         SocialMediaAccountEntity account = SocialMediaAccountMapper.requestToEntity(request);

@@ -10,6 +10,11 @@ import com.deneme.influencerinsight.exception.EmailVerificationRequiredException
 import com.deneme.influencerinsight.mapper.UserMapper;
 import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.repository.UserRepository;
+import com.deneme.influencerinsight.repository.OAuthStateRepository;
+import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
+import com.deneme.influencerinsight.repository.SocialMediaSnapshotRepository;
+import com.deneme.influencerinsight.rest.responses.SocialConnectionConsentResponse;
+import com.deneme.influencerinsight.mapper.SocialMediaAccountMapper;
 import com.deneme.influencerinsight.rest.requests.LoginRequest;
 import com.deneme.influencerinsight.rest.requests.PasswordChangeRequest;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
@@ -51,6 +56,9 @@ public class UserServiceImpl implements UserService {
     private final UserDetailsService userDetailsService;
     private final TokenBlacklistService tokenBlacklistService;
     private final RefreshTokenService refreshTokenService;
+    private final OAuthStateRepository oauthStateRepository;
+    private final SocialMediaAccountRepository socialMediaAccountRepository;
+    private final SocialMediaSnapshotRepository socialMediaSnapshotRepository;
 
     @Value("${app.email.verification-token-ttl-seconds:86400}")
     private long verificationTokenTtlSeconds;
@@ -251,5 +259,58 @@ public class UserServiceImpl implements UserService {
         UserEntity user = getRequiredUserByUsername(username);
         user.setThemePreference(preference);
         return preference;
+    }
+
+    @Override
+    public SocialConnectionConsentResponse getSocialConnectionConsent(String username) {
+        UserEntity user = getRequiredUserByUsername(username);
+        return new SocialConnectionConsentResponse(user.getSocialConnectionConsentAt() != null,
+                user.getSocialConnectionConsentVersion(), user.getSocialConnectionConsentAt());
+    }
+
+    @Override
+    @Transactional
+    public SocialConnectionConsentResponse acceptSocialConnectionConsent(String username) {
+        UserEntity user = getRequiredUserByUsername(username);
+        user.setSocialConnectionConsentVersion("2026-07-11");
+        user.setSocialConnectionConsentAt(Instant.now());
+        return getSocialConnectionConsent(username);
+    }
+
+    @Override
+    public void requireSocialConnectionConsent(String username) {
+        if (!getSocialConnectionConsent(username).accepted()) {
+            throw new IllegalStateException("Social account connection consent is required.");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Object> exportUserData(String username) {
+        UserEntity user = getRequiredUserByUsername(username);
+        var accounts = socialMediaAccountRepository.findAllByUser(user);
+        var snapshots = socialMediaSnapshotRepository.findAllByAccountIn(accounts);
+        return java.util.Map.of(
+                "exportedAt", Instant.now().toString(),
+                "profile", UserMapper.userEntityToUserResponse(user),
+                "socialAccounts", accounts.stream().map(SocialMediaAccountMapper::entityToResponse).toList(),
+                "snapshots", snapshots.stream().map(snapshot -> java.util.Map.of(
+                        "accountId", snapshot.getAccount().getId(), "collectedAt", snapshot.getCollectedAt().toString(),
+                        "schemaVersion", snapshot.getSchemaVersion(), "payload", snapshot.getPayload())).toList());
+    }
+
+    @Override
+    @Transactional
+    public void deleteUserAccount(String username, String currentPassword) {
+        UserEntity user = getRequiredUserByUsername(username);
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new org.springframework.security.access.AccessDeniedException("Current password is incorrect.");
+        }
+        var accounts = socialMediaAccountRepository.findAllByUser(user);
+        accounts.forEach(socialMediaSnapshotRepository::deleteByAccount);
+        socialMediaAccountRepository.deleteAll(accounts);
+        oauthStateRepository.deleteByUser(user);
+        refreshTokenService.revokeTokensForUser(user);
+        userRepository.delete(user);
     }
 }

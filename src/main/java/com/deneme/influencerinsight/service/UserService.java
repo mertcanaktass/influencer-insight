@@ -3,6 +3,8 @@ package com.deneme.influencerinsight.service;
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.ThemePreference;
+import com.deneme.influencerinsight.rest.responses.SocialConnectionConsentResponse;
+import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.rest.requests.LoginRequest;
 import com.deneme.influencerinsight.rest.requests.PasswordChangeRequest;
@@ -51,4 +53,14 @@ public interface UserService {
     ThemePreference getThemePreference(String username);
 
     ThemePreference updateThemePreference(String username, ThemePreference preference);
+
+    SocialConnectionConsentResponse getSocialConnectionConsent(String username);
+
+    SocialConnectionConsentResponse acceptSocialConnectionConsent(String username);
+
+    void requireSocialConnectionConsent(String username);
+
+    java.util.Map<String, Object> exportUserData(String username);
+
+    void deleteUserAccount(String username, String currentPassword);
 }
