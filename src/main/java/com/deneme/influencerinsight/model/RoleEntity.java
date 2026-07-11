@@ -25,6 +25,4 @@ public class RoleEntity extends AbstractEntity {
     @Column(name = "role_type", nullable = false, unique = true)
     private RoleType roleType;
 
-    @Column(name = "status")
-    private Integer status;
 }

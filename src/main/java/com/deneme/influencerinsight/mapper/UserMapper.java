@@ -39,6 +39,7 @@ public class UserMapper {
                 .updateDate(Objects.nonNull(userDto.getUpdateDate()) ? userDto.getUpdateDate() : null)
                 .emailVerified(Boolean.TRUE.equals(userDto.getEmailVerified()))
                 .verificationToken(userDto.getVerificationToken())
+                .verificationTokenExpiresAt(userDto.getVerificationTokenExpiresAt())
                 .roleEntity(roleDtoToEntity(roleDto))
                 .build();
 
@@ -49,17 +50,10 @@ public class UserMapper {
         return UserDto.builder()
                 .username(userEntity.getUsername())
                 .email(userEntity.getEmail())
+                .emailVerified(userEntity.isEmailVerified())
                 .status(Status.getStatusById(userEntity.getStatus()))
                 .createDate(userEntity.getCreateDate())
                 .build();
     }
 
-    public static UserEntity userResponseToEntity(UserResponse userResponse) {
-        if (Objects.isNull(userResponse)) throw new NoSuchElementException("User Not Found!");
-        return UserEntity.builder()
-                .id(userResponse.getId())
-                .username(userResponse.getUsername())
-                .email(userResponse.getEmail())
-                .build();
-    }
 }

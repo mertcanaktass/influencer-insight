@@ -1,5 +1,7 @@
 package com.deneme.influencerinsight.controller;
 
+import com.deneme.influencerinsight.enums.SocialMediaPlatform;
+import com.deneme.influencerinsight.service.OAuthStateService;
 import com.deneme.influencerinsight.service.YoutubeOAuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,11 +19,11 @@ import java.util.Map;
 public class YoutubeConnectController {
 
     private final YoutubeOAuthService youtubeOAuthService;
+    private final OAuthStateService oauthStateService;
 
     @GetMapping("/url")
     public ResponseEntity<Map<String, String>> getAuthorizationUrl(Authentication authentication) {
-        // Uç permitAll; token'sız çağrıda authentication null olabilir (NPE'yi önle).
-        String state = authentication != null ? authentication.getName() : "anonymous";
+        String state = oauthStateService.createState(authentication.getName(), SocialMediaPlatform.YOUTUBE);
         String url = youtubeOAuthService.buildAuthorizationUrl(state);
         return ResponseEntity.ok(Map.of("authUrl", url));
     }
@@ -29,8 +31,8 @@ public class YoutubeConnectController {
     @GetMapping("/callback")
     public ResponseEntity<String> callback(@RequestParam("code") String code,
                                            @RequestParam("state") String state) {
-        youtubeOAuthService.exchangeCodeAndSaveAccount(state, code);
-        return ResponseEntity.ok("YouTube account linked for user: " + state);
+        String username = oauthStateService.consumeState(state, SocialMediaPlatform.YOUTUBE);
+        youtubeOAuthService.exchangeCodeAndSaveAccount(username, code);
+        return ResponseEntity.ok("YouTube account linked for user: " + username);
     }
 }
-

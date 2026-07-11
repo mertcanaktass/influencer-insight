@@ -1,9 +1,11 @@
 package com.deneme.influencerinsight.service.impl;
 
 import com.deneme.influencerinsight.enums.SocialMediaPlatform;
+import com.deneme.influencerinsight.integration.ExternalApiClient;
+import com.deneme.influencerinsight.security.SocialTokenCipher;
 import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
 import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
-import com.deneme.influencerinsight.rest.responses.UserResponse;
+import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.service.InstagramOAuthService;
 import com.deneme.influencerinsight.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.deneme.influencerinsight.mapper.UserMapper.userResponseToEntity;
-import static com.deneme.influencerinsight.util.HttpUtils.get;
-import static com.deneme.influencerinsight.util.HttpUtils.getAuthed;
 import static com.deneme.influencerinsight.util.JsonUtils.*;
 
 @Service
@@ -42,6 +41,8 @@ public class InstagramOAuthServiceImpl implements InstagramOAuthService {
 
     private final UserService userService;
     private final SocialMediaAccountRepository accountRepo;
+    private final ExternalApiClient externalApiClient;
+    private final SocialTokenCipher socialTokenCipher;
 
     @Override
     public String buildAuthorizationUrl(String state) {
@@ -64,9 +65,11 @@ public class InstagramOAuthServiceImpl implements InstagramOAuthService {
             throw new IllegalArgumentException("Missing username (state).");
         }
 
-        Map<String, Object> userToken = get(
+        Map<String, Object> userToken = externalApiClient.get(
+                "Facebook Graph API",
                 "https://graph.facebook.com/" + graphVer + "/oauth/access_token",
                 Map.of("client_id", clientId, "client_secret", clientSecret, "redirect_uri", redirectUri, "code", code),
+                null,
                 new ParameterizedTypeReference<>() {
                 }
         );
@@ -77,10 +80,12 @@ public class InstagramOAuthServiceImpl implements InstagramOAuthService {
         }
 
         if (longLivedEnabled) {
-            Map<String, Object> ll = get(
+            Map<String, Object> ll = externalApiClient.get(
+                    "Facebook Graph API",
                     "https://graph.facebook.com/" + graphVer + "/oauth/access_token",
                     Map.of("grant_type", "fb_exchange_token", "client_id", clientId, "client_secret", clientSecret,
                             "fb_exchange_token", userAccessToken),
+                    null,
                     new ParameterizedTypeReference<>() {
                     }
             );
@@ -90,10 +95,11 @@ public class InstagramOAuthServiceImpl implements InstagramOAuthService {
             }
         }
 
-        Map<String, Object> accounts = getAuthed(
+        Map<String, Object> accounts = externalApiClient.get(
+                "Facebook Graph API",
                 "https://graph.facebook.com/" + graphVer + "/me/accounts",
-                userAccessToken,
                 Map.of("fields", "id,name,access_token,instagram_business_account"),
+                userAccessToken,
                 new ParameterizedTypeReference<>() {
                 }
         );
@@ -116,10 +122,11 @@ public class InstagramOAuthServiceImpl implements InstagramOAuthService {
             throw new RuntimeException("Missing instagram_business_account.id or page access token.");
         }
 
-        Map<String, Object> igProfile = getAuthed(
+        Map<String, Object> igProfile = externalApiClient.get(
+                "Facebook Graph API",
                 "https://graph.facebook.com/" + graphVer + "/" + igUserId,
-                pageAccessToken,
                 Map.of("fields", "username,profile_picture_url,followers_count,media_count,name"),
+                pageAccessToken,
                 new ParameterizedTypeReference<>() {
                 }
         );
@@ -127,18 +134,17 @@ public class InstagramOAuthServiceImpl implements InstagramOAuthService {
         String igUsername = getStringOrDefault(igProfile, "username", username);
         String profileUrl = "https://www.instagram.com/" + igUsername;
 
-        UserResponse user = userService.inquireUserWithUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        UserEntity user = userService.getRequiredUserByUsername(username);
 
         SocialMediaAccountEntity account = accountRepo
                 .findAllByUserUsernameAndPlatform(username, SocialMediaPlatform.INSTAGRAM)
                 .stream().findFirst()
                 .orElseGet(() -> SocialMediaAccountEntity.builder()
                         .platform(SocialMediaPlatform.INSTAGRAM)
-                        .user(userResponseToEntity(user))
+                        .user(user)
                         .build());
 
-        account.setAccessToken(pageAccessToken);
+        account.setAccessToken(socialTokenCipher.encrypt(pageAccessToken));
         account.setExternalId(igUserId);
         account.setUsername(igUsername);
         account.setProfileUrl(profileUrl);

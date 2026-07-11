@@ -1,26 +1,25 @@
 package com.deneme.influencerinsight.service.impl;
 
 import com.deneme.influencerinsight.enums.SocialMediaPlatform;
+import com.deneme.influencerinsight.integration.ExternalApiClient;
+import com.deneme.influencerinsight.security.SocialTokenCipher;
 import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
 import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
-import com.deneme.influencerinsight.rest.responses.UserResponse;
+import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.service.TiktokOAuthService;
 import com.deneme.influencerinsight.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
 
-import static com.deneme.influencerinsight.mapper.UserMapper.userResponseToEntity;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +27,8 @@ public class TiktokOAuthServiceImpl implements TiktokOAuthService {
 
     private final SocialMediaAccountRepository accountRepository;
     private final UserService userService;
-    private final RestClient rest = RestClient.create();
+    private final ExternalApiClient externalApiClient;
+    private final SocialTokenCipher socialTokenCipher;
     
     @Value("${tiktok.client-key}")
     private String clientKey;
@@ -61,8 +61,8 @@ public class TiktokOAuthServiceImpl implements TiktokOAuthService {
     }
 
     @Transactional
-    public SocialMediaAccountEntity exchangeCodeAndPersist(String appUsername, String stateIgnored, String code) {
-        if (appUsername == null || appUsername.isBlank()) {
+    public SocialMediaAccountEntity exchangeCodeAndPersist(String username, String code) {
+        if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Missing username (state).");
         }
 
@@ -73,12 +73,12 @@ public class TiktokOAuthServiceImpl implements TiktokOAuthService {
         form.add("grant_type", "authorization_code");
         form.add("redirect_uri", redirectUri);
 
-        Map<String, Object> resp = rest.post()
-                .uri(baseUrl + "/v2/oauth/token/")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(form)
-                .retrieve()
-                .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+        Map<String, Object> resp = externalApiClient.postForm(
+                "TikTok API",
+                URI.create(baseUrl + "/v2/oauth/token/"),
+                form,
+                new ParameterizedTypeReference<>() {
+                });
 
         if (resp == null || resp.isEmpty()) {
             throw new RuntimeException("Failed to exchange code for tokens.");
@@ -86,28 +86,41 @@ public class TiktokOAuthServiceImpl implements TiktokOAuthService {
 
         String accessToken = (String) resp.get("access_token");
         String refreshToken = (String) resp.get("refresh_token");
-        Number expiresInSec = (Number) resp.getOrDefault("expires_in", 3600);
+        long expiresInSeconds = getLong(resp.get("expires_in"), 3600);
         String openId = (String) resp.get("open_id");
 
         // user_id NOT NULL olduğu için hesabı sahibine bağla; ayrıca lookup'ı
         // Instagram/YouTube ile aynı anahtara (user.username + platform) getir.
-        UserResponse user = userService.inquireUserWithUsername(appUsername)
-                .orElseThrow(() -> new RuntimeException("User not found: " + appUsername));
+        UserEntity user = userService.getRequiredUserByUsername(username);
 
         SocialMediaAccountEntity account = accountRepository
-                .findAllByUserUsernameAndPlatform(appUsername, SocialMediaPlatform.TIKTOK)
+                .findAllByUserUsernameAndPlatform(username, SocialMediaPlatform.TIKTOK)
                 .stream().findFirst()
                 .orElseGet(() -> SocialMediaAccountEntity.builder()
                         .platform(SocialMediaPlatform.TIKTOK)
-                        .user(userResponseToEntity(user))
-                        .username(appUsername)
+                        .user(user)
+                        .username(username)
                         .build());
 
-        account.setAccessToken(accessToken);
-        account.setRefreshToken(refreshToken);
-        account.setTokenExpiresAt(Instant.now().plusSeconds(expiresInSec.longValue()));
+        account.setAccessToken(socialTokenCipher.encrypt(accessToken));
+        account.setRefreshToken(socialTokenCipher.encrypt(refreshToken));
+        account.setTokenExpiresAt(Instant.now().plusSeconds(expiresInSeconds));
         account.setExternalId(openId);
 
         return accountRepository.save(account);
+    }
+
+    private long getLong(Object value, long defaultValue) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof String stringValue && !stringValue.isBlank()) {
+            try {
+                return Long.parseLong(stringValue);
+            } catch (NumberFormatException ignored) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
     }
 }

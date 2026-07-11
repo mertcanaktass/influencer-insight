@@ -23,6 +23,8 @@ public interface UserService {
 
     boolean existsByUsername(String username);
 
+    UserEntity getRequiredUserByUsername(String username);
+
     UserEntity saveUser(UserDto userDto, RoleDto roleDto);
 
     UserResponse registerAdminUser(RegisterRequest request);

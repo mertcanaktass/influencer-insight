@@ -2,7 +2,9 @@ package com.deneme.influencerinsight.controller;
 
 import com.deneme.influencerinsight.rest.requests.SocialMediaAccountRequest;
 import com.deneme.influencerinsight.rest.responses.SocialMediaAccountResponse;
+import com.deneme.influencerinsight.rest.responses.SocialMediaSyncResponse;
 import com.deneme.influencerinsight.service.SocialMediaAccountService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,7 +21,7 @@ public class SocialMediaAccountController {
 
     @PostMapping
     public ResponseEntity<SocialMediaAccountResponse> addAccount(Authentication authentication,
-                                                                 @RequestBody SocialMediaAccountRequest request) {
+                                                                 @Valid @RequestBody SocialMediaAccountRequest request) {
         String username = authentication.getName();
         SocialMediaAccountResponse response = socialMediaAccountService.addAccount(username, request);
         return ResponseEntity.ok(response);
@@ -39,13 +41,13 @@ public class SocialMediaAccountController {
     }
 
     @PostMapping("/{id}/sync")
-    public ResponseEntity<SocialMediaAccountResponse> syncAccount(Authentication authentication, @PathVariable Long id) {
+    public ResponseEntity<SocialMediaSyncResponse> syncAccount(Authentication authentication, @PathVariable Long id) {
         String username = authentication.getName();
         return ResponseEntity.ok(socialMediaAccountService.syncAccount(username, id));
     }
 
     @PostMapping("/sync")
-    public ResponseEntity<List<SocialMediaAccountResponse>> syncAll(Authentication authentication) {
+    public ResponseEntity<List<SocialMediaSyncResponse>> syncAll(Authentication authentication) {
         String username = authentication.getName();
         return ResponseEntity.ok(socialMediaAccountService.syncAll(username));
     }

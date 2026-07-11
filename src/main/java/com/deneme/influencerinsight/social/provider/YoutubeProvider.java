@@ -1,19 +1,13 @@
 package com.deneme.influencerinsight.social.provider;
 
 import com.deneme.influencerinsight.enums.SocialMediaPlatform;
+import com.deneme.influencerinsight.integration.ExternalApiClient;
 import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
-import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
 import com.deneme.influencerinsight.service.YoutubeTokenService;
 import com.deneme.influencerinsight.social.SocialPlatformProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -26,8 +20,8 @@ import static com.deneme.influencerinsight.util.JsonUtils.*;
 @RequiredArgsConstructor
 public class YoutubeProvider implements SocialPlatformProvider {
 
-    private final SocialMediaAccountRepository accountRepository;
     private final YoutubeTokenService youtubeTokenService;
+    private final ExternalApiClient externalApiClient;
 
     @Override
     public boolean supports(SocialMediaPlatform platform) {
@@ -35,12 +29,7 @@ public class YoutubeProvider implements SocialPlatformProvider {
     }
 
     @Override
-    public String fetchAccountSnapshotJson(String ownerUsername, String ignoredAccessToken) throws Exception {
-        SocialMediaAccountEntity account = accountRepository
-                .findAllByUserUsernameAndPlatform(ownerUsername, SocialMediaPlatform.YOUTUBE)
-                .stream().findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("YouTube account not linked for user: " + ownerUsername));
-
+    public String fetchAccountSnapshotJson(SocialMediaAccountEntity account) {
         String accessToken = youtubeTokenService.ensureValidAccessToken(account);
 
         Map<String, Object> channel = getAuthed(
@@ -81,21 +70,9 @@ public class YoutubeProvider implements SocialPlatformProvider {
     }
 
     private Map<String, Object> getAuthed(String url, String token, Map<String, String> params) {
-        UriComponentsBuilder b = UriComponentsBuilder.fromUriString(url);
-        params.forEach(b::queryParam);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
-        RestTemplate rt = new RestTemplate();
-        ResponseEntity<Map<String, Object>> res = rt.exchange(
-                b.build(true).toUri(), HttpMethod.GET, new HttpEntity<>(headers),
+        return externalApiClient.get("YouTube Data API", url, params, token,
                 new ParameterizedTypeReference<>() {
-                }
-        );
-        if (!res.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("GET (auth) failed: " + url + " status=" + res.getStatusCode());
-        }
-        Map<String, Object> body = res.getBody();
-        return body == null ? Map.of() : body;
+                });
     }
 
     private String extractUploadsPlaylistId(Map<String, Object> channel) {

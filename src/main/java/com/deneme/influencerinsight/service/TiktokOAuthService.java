@@ -8,6 +8,6 @@ public interface TiktokOAuthService {
 
     URI buildAuthorizationUri(String state);
 
-    SocialMediaAccountEntity exchangeCodeAndPersist(String appUsername, String stateIgnored, String code);
+    SocialMediaAccountEntity exchangeCodeAndPersist(String username, String code);
 
 }
