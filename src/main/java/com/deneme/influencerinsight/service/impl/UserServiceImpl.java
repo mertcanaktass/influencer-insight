@@ -5,6 +5,7 @@ import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.RoleType;
 import com.deneme.influencerinsight.enums.UserStatus;
 import com.deneme.influencerinsight.exception.UserAlreadyExistsException;
+import com.deneme.influencerinsight.exception.EmailVerificationRequiredException;
 import com.deneme.influencerinsight.mapper.UserMapper;
 import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.repository.UserRepository;
@@ -23,7 +24,6 @@ import com.deneme.influencerinsight.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -142,22 +142,18 @@ public class UserServiceImpl implements UserService {
                              AuthenticationManager authenticationManager,
                              JwtUtil jwtUtil) {
 
-        UserDto userDto = userRepository.findByUsername(request.getUsername())
-                .map(UserMapper::userEntityToUserDto)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found!"));
-
-        if (Boolean.FALSE.equals(userDto.getEmailVerified())) {
-            throw new AccessDeniedException("You need to verify your email address.");
-        }
-
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
-        String accessToken = jwtUtil.generateAccessToken(userDetails);
         UserEntity user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found!"));
+        if (!user.isEmailVerified()) {
+            throw new EmailVerificationRequiredException();
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+        String accessToken = jwtUtil.generateAccessToken(userDetails);
         String refreshToken = refreshTokenService.createRefreshToken(user);
 
         return new JwtResponse(accessToken, refreshToken);
@@ -211,7 +207,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found!"));
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new AccessDeniedException("Old password is incorrect");
+            throw new org.springframework.security.access.AccessDeniedException("Old password is incorrect");
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));

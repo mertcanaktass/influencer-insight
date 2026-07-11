@@ -2,6 +2,7 @@ package com.deneme.influencerinsight.controller;
 
 import com.deneme.influencerinsight.enums.SocialMediaPlatform;
 import com.deneme.influencerinsight.service.OAuthStateService;
+import com.deneme.influencerinsight.service.OAuthStateData;
 import com.deneme.influencerinsight.service.OAuthRedirectService;
 import com.deneme.influencerinsight.service.TiktokOAuthService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,8 +29,10 @@ public class TiktokConnectController {
 
     @GetMapping("/url")
     public ResponseEntity<Map<String, String>> getAuthorizationUrl(Authentication authentication) {
-        String state = oauthStateService.createState(authentication.getName(), SocialMediaPlatform.TIKTOK);
-        return ResponseEntity.ok(Map.of("authUrl", tiktokOAuthService.buildAuthorizationUri(state).toString()));
+        String codeVerifier = tiktokOAuthService.generateCodeVerifier();
+        String state = oauthStateService.createState(
+                authentication.getName(), SocialMediaPlatform.TIKTOK, codeVerifier);
+        return ResponseEntity.ok(Map.of("authUrl", tiktokOAuthService.buildAuthorizationUri(state, codeVerifier).toString()));
     }
 
     @GetMapping("/callback")
@@ -37,8 +40,8 @@ public class TiktokConnectController {
                          @RequestParam("state") String state,
                          HttpServletResponse response) throws java.io.IOException {
         try {
-            String username = oauthStateService.consumeState(state, SocialMediaPlatform.TIKTOK);
-            tiktokOAuthService.exchangeCodeAndPersist(username, code);
+            OAuthStateData stateData = oauthStateService.consumeStateData(state, SocialMediaPlatform.TIKTOK);
+            tiktokOAuthService.exchangeCodeAndPersist(stateData.username(), code, stateData.codeVerifier());
             oauthRedirectService.redirectToAccounts(response, SocialMediaPlatform.TIKTOK, true);
         } catch (RuntimeException exception) {
             log.warn("TikTok OAuth callback failed", exception);

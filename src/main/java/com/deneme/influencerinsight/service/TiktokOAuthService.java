@@ -6,8 +6,10 @@ import java.net.URI;
 
 public interface TiktokOAuthService {
 
-    URI buildAuthorizationUri(String state);
+    String generateCodeVerifier();
 
-    SocialMediaAccountEntity exchangeCodeAndPersist(String username, String code);
+    URI buildAuthorizationUri(String state, String codeVerifier);
+
+    SocialMediaAccountEntity exchangeCodeAndPersist(String username, String code, String codeVerifier);
 
 }

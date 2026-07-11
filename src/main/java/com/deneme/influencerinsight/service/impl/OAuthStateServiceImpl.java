@@ -4,6 +4,7 @@ import com.deneme.influencerinsight.enums.SocialMediaPlatform;
 import com.deneme.influencerinsight.model.OAuthStateEntity;
 import com.deneme.influencerinsight.repository.OAuthStateRepository;
 import com.deneme.influencerinsight.service.OAuthStateService;
+import com.deneme.influencerinsight.service.OAuthStateData;
 import com.deneme.influencerinsight.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,12 @@ public class OAuthStateServiceImpl implements OAuthStateService {
     @Override
     @Transactional
     public String createState(String username, SocialMediaPlatform platform) {
+        return createState(username, platform, null);
+    }
+
+    @Override
+    @Transactional
+    public String createState(String username, SocialMediaPlatform platform, String codeVerifier) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("OAuth state requires an authenticated user.");
         }
@@ -43,6 +50,7 @@ public class OAuthStateServiceImpl implements OAuthStateService {
         oauthState.setUser(userService.getRequiredUserByUsername(username));
         oauthState.setPlatform(platform);
         oauthState.setExpiresAt(now.plusSeconds(stateTtlSeconds));
+        oauthState.setCodeVerifier(codeVerifier);
 
         return oauthStateRepository.save(oauthState).getState();
     }
@@ -50,6 +58,12 @@ public class OAuthStateServiceImpl implements OAuthStateService {
     @Override
     @Transactional
     public String consumeState(String state, SocialMediaPlatform platform) {
+        return consumeStateData(state, platform).username();
+    }
+
+    @Override
+    @Transactional
+    public OAuthStateData consumeStateData(String state, SocialMediaPlatform platform) {
         OAuthStateEntity oauthState = oauthStateRepository.findByState(state)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid OAuth state."));
 
@@ -63,7 +77,7 @@ public class OAuthStateServiceImpl implements OAuthStateService {
             throw new IllegalArgumentException("OAuth state does not match the requested platform.");
         }
 
-        return username;
+        return new OAuthStateData(username, oauthState.getCodeVerifier());
     }
 
     private String generateState() {

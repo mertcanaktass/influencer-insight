@@ -35,9 +35,15 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "You do not have permission to perform this action.");
     }
 
+    @ExceptionHandler(EmailVerificationRequiredException.class)
+    public ResponseEntity<ApiErrorResponse> handleEmailVerificationRequired(EmailVerificationRequiredException ex) {
+        return error(HttpStatus.FORBIDDEN, "EMAIL_VERIFICATION_REQUIRED",
+                "E-posta adresini doğrulaman gerekiyor.");
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiErrorResponse> handleAuthentication(AuthenticationException ex) {
-        return error(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid username or password.");
+        return error(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Kullanıcı adı veya şifre hatalı.");
     }
 
     @ExceptionHandler(OpenAiException.class)

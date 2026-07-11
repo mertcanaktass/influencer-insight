@@ -17,13 +17,20 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Map;
 
 
 @Service
 @RequiredArgsConstructor
 public class TiktokOAuthServiceImpl implements TiktokOAuthService {
+
+    private static final int CODE_VERIFIER_BYTE_LENGTH = 64;
 
     private final SocialMediaAccountRepository accountRepository;
     private final UserService userService;
@@ -48,7 +55,14 @@ public class TiktokOAuthServiceImpl implements TiktokOAuthService {
     @Value("${tiktok.redirect-uri}")
     private String redirectUri;
 
-    public URI buildAuthorizationUri(String state) {
+    public String generateCodeVerifier() {
+        byte[] bytes = new byte[CODE_VERIFIER_BYTE_LENGTH];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    @Override
+    public URI buildAuthorizationUri(String state, String codeVerifier) {
         return UriComponentsBuilder
                 .fromUriString(authBaseUrl + "/v2/auth/authorize/")
                 .queryParam("client_key", clientKey)
@@ -56,14 +70,19 @@ public class TiktokOAuthServiceImpl implements TiktokOAuthService {
                 .queryParam("response_type", "code")
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("state", state)
+                .queryParam("code_challenge", createCodeChallenge(codeVerifier))
+                .queryParam("code_challenge_method", "S256")
                 .build(true)
                 .toUri();
     }
 
     @Transactional
-    public SocialMediaAccountEntity exchangeCodeAndPersist(String username, String code) {
+    public SocialMediaAccountEntity exchangeCodeAndPersist(String username, String code, String codeVerifier) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Missing username (state).");
+        }
+        if (codeVerifier == null || codeVerifier.isBlank()) {
+            throw new IllegalArgumentException("Missing TikTok PKCE verifier.");
         }
 
         var form = new LinkedMultiValueMap<String, String>();
@@ -72,6 +91,7 @@ public class TiktokOAuthServiceImpl implements TiktokOAuthService {
         form.add("code", code);
         form.add("grant_type", "authorization_code");
         form.add("redirect_uri", redirectUri);
+        form.add("code_verifier", codeVerifier);
 
         Map<String, Object> resp = externalApiClient.postForm(
                 "TikTok API",
@@ -122,5 +142,15 @@ public class TiktokOAuthServiceImpl implements TiktokOAuthService {
             }
         }
         return defaultValue;
+    }
+
+    private String createCodeChallenge(String codeVerifier) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable.", exception);
+        }
     }
 }

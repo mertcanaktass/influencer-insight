@@ -32,4 +32,7 @@ public class OAuthStateEntity {
 
     @Column(nullable = false)
     private Instant expiresAt;
+
+    @Column(name = "code_verifier", length = 128)
+    private String codeVerifier;
 }

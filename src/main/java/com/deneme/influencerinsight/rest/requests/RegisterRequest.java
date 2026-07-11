@@ -12,7 +12,7 @@ public class RegisterRequest {
     private String username;
 
     @NotBlank
-    @Size(min = 8, max = 72)
+    @Size(min = 8, max = 72, message = "Şifre en az 8, en fazla 72 karakter olmalı.")
     private String password;
 
     @NotBlank
