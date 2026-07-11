@@ -4,6 +4,7 @@ import com.deneme.influencerinsight.enums.SocialMediaPlatform;
 import com.deneme.influencerinsight.model.OAuthStateEntity;
 import com.deneme.influencerinsight.repository.OAuthStateRepository;
 import com.deneme.influencerinsight.service.OAuthStateService;
+import com.deneme.influencerinsight.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class OAuthStateServiceImpl implements OAuthStateService {
     private static final int STATE_BYTE_LENGTH = 32;
 
     private final OAuthStateRepository oauthStateRepository;
+    private final UserService userService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${app.oauth.state-ttl-seconds:600}")
@@ -38,7 +40,7 @@ public class OAuthStateServiceImpl implements OAuthStateService {
 
         OAuthStateEntity oauthState = new OAuthStateEntity();
         oauthState.setState(generateState());
-        oauthState.setUsername(username);
+        oauthState.setUser(userService.getRequiredUserByUsername(username));
         oauthState.setPlatform(platform);
         oauthState.setExpiresAt(now.plusSeconds(stateTtlSeconds));
 
@@ -51,6 +53,7 @@ public class OAuthStateServiceImpl implements OAuthStateService {
         OAuthStateEntity oauthState = oauthStateRepository.findByState(state)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid OAuth state."));
 
+        String username = oauthState.getUser().getUsername();
         oauthStateRepository.delete(oauthState);
 
         if (oauthState.getExpiresAt().isBefore(Instant.now())) {
@@ -60,7 +63,7 @@ public class OAuthStateServiceImpl implements OAuthStateService {
             throw new IllegalArgumentException("OAuth state does not match the requested platform.");
         }
 
-        return oauthState.getUsername();
+        return username;
     }
 
     private String generateState() {

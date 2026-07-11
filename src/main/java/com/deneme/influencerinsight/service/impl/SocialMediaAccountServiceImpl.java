@@ -3,7 +3,9 @@ package com.deneme.influencerinsight.service.impl;
 import com.deneme.influencerinsight.exception.ResourceNotFoundException;
 import com.deneme.influencerinsight.mapper.SocialMediaAccountMapper;
 import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
+import com.deneme.influencerinsight.model.SocialMediaSnapshotEntity;
 import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
+import com.deneme.influencerinsight.repository.SocialMediaSnapshotRepository;
 import com.deneme.influencerinsight.rest.requests.SocialMediaAccountRequest;
 import com.deneme.influencerinsight.rest.responses.SocialMediaAccountResponse;
 import com.deneme.influencerinsight.rest.responses.SocialMediaSyncResponse;
@@ -27,6 +29,7 @@ import java.util.List;
 public class SocialMediaAccountServiceImpl implements SocialMediaAccountService {
 
     private final SocialMediaAccountRepository socialMediaAccountRepository;
+    private final SocialMediaSnapshotRepository socialMediaSnapshotRepository;
     private final UserService userService;
     private final SocialProviderRegistry providerRegistry;
     private final SocialTokenCipher socialTokenCipher;
@@ -53,6 +56,7 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
                 .toList();
     }
 
+    @Transactional
     @Override
     public void deleteAccount(String username, Long accountId) {
         UserEntity user = userService.getRequiredUserByUsername(username);
@@ -60,6 +64,7 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
         SocialMediaAccountEntity account = socialMediaAccountRepository.findByIdAndUser(accountId, user)
                 .orElseThrow(() -> new ResourceNotFoundException("Social media account not found"));
 
+        socialMediaSnapshotRepository.deleteByAccount(account);
         socialMediaAccountRepository.delete(account);
     }
 
@@ -89,9 +94,15 @@ public class SocialMediaAccountServiceImpl implements SocialMediaAccountService 
             SocialPlatformProvider provider = providerRegistry.getProvider(account.getPlatform());
             String snapshot = provider.fetchAccountSnapshotJson(account);
 
-            account.setExtraData(snapshot);
-            account.setLastSyncedAt(Instant.now());
+            Instant collectedAt = Instant.now();
+            account.setLastSyncedAt(collectedAt);
             SocialMediaAccountEntity savedAccount = socialMediaAccountRepository.save(account);
+
+            SocialMediaSnapshotEntity snapshotEntity = new SocialMediaSnapshotEntity();
+            snapshotEntity.setAccount(savedAccount);
+            snapshotEntity.setCollectedAt(collectedAt);
+            snapshotEntity.setPayload(snapshot);
+            socialMediaSnapshotRepository.save(snapshotEntity);
 
             return SocialMediaSyncResponse.builder()
                     .account(SocialMediaAccountMapper.entityToResponse(savedAccount))

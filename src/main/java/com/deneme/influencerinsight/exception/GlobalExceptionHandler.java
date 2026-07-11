@@ -4,6 +4,7 @@ import com.deneme.influencerinsight.rest.responses.ApiErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -42,12 +43,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OpenAiException.class)
     public ResponseEntity<ApiErrorResponse> handleOpenAi(OpenAiException ex) {
         log.warn("OpenAI request failed", ex);
+        if (isRateLimited(ex.getCause())) {
+            return error(HttpStatus.TOO_MANY_REQUESTS, "AI_PROVIDER_RATE_LIMITED",
+                    "AI service request limit has been reached. Please try again later.");
+        }
         return error(HttpStatus.BAD_GATEWAY, "AI_SERVICE_UNAVAILABLE", "AI service is temporarily unavailable.");
     }
 
     @ExceptionHandler(ExternalApiException.class)
     public ResponseEntity<ApiErrorResponse> handleExternalApi(ExternalApiException ex) {
         log.warn("{} request failed", ex.getServiceName(), ex);
+        if (isRateLimited(ex)) {
+            return error(HttpStatus.TOO_MANY_REQUESTS, "EXTERNAL_SERVICE_RATE_LIMITED",
+                    "An external service request limit has been reached. Please try again later.");
+        }
         return error(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_UNAVAILABLE", "An external service is temporarily unavailable.");
     }
 
@@ -84,6 +93,14 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ApiErrorResponse> error(HttpStatus status, String code, String message) {
         return error(status, code, message, Map.of());
+    }
+
+    private boolean isRateLimited(Throwable throwable) {
+        if (!(throwable instanceof ExternalApiException externalApiException)) {
+            return false;
+        }
+        HttpStatusCode statusCode = externalApiException.getStatusCode();
+        return statusCode != null && statusCode.value() == HttpStatus.TOO_MANY_REQUESTS.value();
     }
 
     private ResponseEntity<ApiErrorResponse> error(HttpStatus status,

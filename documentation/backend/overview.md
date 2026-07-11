@@ -52,7 +52,7 @@ Sosyal medya platform entegrasyonları **Strategy + Registry pattern** ile soyut
 | `/api/auth/change-password` | PUT | Kimliği doğrulanmış kullanıcının şifresini değiştirir |
 | `/api/auth/verify-email` | GET | Token ile e-posta doğrulama |
 | `/api/instagram/oauth/url` | GET | Instagram OAuth yetkilendirme URL'i üretir |
-| `/api/instagram/oauth/callback` | GET | Instagram OAuth callback'i işler, hesabı kullanıcıya bağlar |
+| `/api/instagram/oauth/callback` | GET | Instagram OAuth callback'ini işler ve sonucu frontend hesaplar sayfasına yönlendirir |
 | `/api/openai/chat` | POST | Verilen prompt'u OpenAI'a gönderip ham yanıt döner |
 | `/api/openai/analyze` | POST | Kullanıcının bağlı sosyal medya hesabını OpenAI ile analiz eder |
 | `/api/social-media` | POST | Kullanıcıya sosyal medya hesabı ekler/bağlar |
@@ -60,11 +60,11 @@ Sosyal medya platform entegrasyonları **Strategy + Registry pattern** ile soyut
 | `/api/social-media/{id}` | DELETE | Bağlı sosyal medya hesabını kaldırır |
 | `/api/social-media/{id}/sync` | POST | Belirli bir sosyal medya hesabının verisini senkronize eder |
 | `/api/social-media/sync` | POST | Kullanıcının tüm bağlı hesaplarının verisini senkronize eder |
-| `api/v1/tiktok/oauth/auth` | GET | TikTok yetkilendirme sayfasına yönlendirir |
-| `api/v1/tiktok/oauth/callback` | GET | TikTok OAuth callback'i işler, hesabı kaydeder |
+| `/api/tiktok/oauth/url` | GET | TikTok OAuth yetkilendirme URL'ini üretir |
+| `/api/tiktok/oauth/callback` | GET | TikTok OAuth callback'ini işler ve sonucu frontend hesaplar sayfasına yönlendirir |
 | `/api/youtube/oauth/url` | GET | YouTube/Google OAuth yetkilendirme URL'i üretir |
-| `/api/youtube/oauth/callback` | GET | YouTube OAuth callback'i işler, hesabı kullanıcıya bağlar |
+| `/api/youtube/oauth/callback` | GET | YouTube OAuth callback'ini işler ve sonucu frontend hesaplar sayfasına yönlendirir |
 
 ## Bilinen Sorunlar / Takip Edilecekler
-- `TiktokConnectController`'ın `@RequestMapping` yolu (`api/v1/tiktok/oauth`) ile `application.properties`'teki `tiktok.redirect-uri` (`/api/tiktok/oauth/callback`) arasında tutarsızlık var — doğrulanmalı.
+- OAuth callback'leri, yapılandırılan `FRONTEND_BASE_URL` üzerinden hesaplar sayfasına başarı/hata parametreleriyle yönlendirir.
 - `SocialMediaPlatformController` ve `SocialMediaVendorController` şu an tamamen devre dışı (yorum satırı).

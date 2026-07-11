@@ -2,7 +2,6 @@ package com.deneme.influencerinsight.mapper;
 
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
-import com.deneme.influencerinsight.enums.Status;
 import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 
@@ -31,8 +30,8 @@ public class UserMapper {
         return UserEntity.builder()
                 .username(userDto.getUsername())
                 .password(hashedPassword != null ? hashedPassword : userDto.getPassword())
-                .email(userDto.getEmail())
-                .status(userDto.getStatus().getId())
+                .email(userDto.getEmail().trim().toLowerCase(java.util.Locale.ROOT))
+                .accountStatus(userDto.getAccountStatus())
                 .createDate(userDto.getCreateDate())
                 .createUserId(Objects.nonNull(userDto.getCreateUserId()) ? userDto.getCreateUserId() : null)
                 .updateUserId(Objects.nonNull(userDto.getUpdateUserId()) ? userDto.getUpdateUserId() : null)
@@ -51,7 +50,7 @@ public class UserMapper {
                 .username(userEntity.getUsername())
                 .email(userEntity.getEmail())
                 .emailVerified(userEntity.isEmailVerified())
-                .status(Status.getStatusById(userEntity.getStatus()))
+                .accountStatus(userEntity.getAccountStatus())
                 .createDate(userEntity.getCreateDate())
                 .build();
     }

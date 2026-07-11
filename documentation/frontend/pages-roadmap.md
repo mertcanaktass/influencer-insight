@@ -13,7 +13,7 @@ ve geliştirme sırasını tanımlar. Genel teknoloji kararları için
 | 3 | E-posta Doğrulama | `/verify-email?token=` | `GET /api/auth/verify-email` | Kayıt sonrası e-posta doğrulama | ✅ Yapıldı |
 | 4 | Dashboard / Ana | `/` | (özet için 5. ve 7.'yi kullanır) | Genel bakış, hızlı erişim | 🟡 Basit shell var |
 | 5 | Sosyal Hesaplar | `/accounts` | `GET/POST/DELETE /api/social-media`, `POST /api/social-media/{id}/sync`, `POST /api/social-media/sync` | Bağlı hesapları listele, ekle, sil, senkronize et | ✅ Yapıldı |
-| 6 | Hesap Bağla (OAuth) | `/accounts` içinde panel | `GET /api/instagram/oauth/url`, `GET /api/youtube/oauth/url`, `GET api/v1/tiktok/oauth/auth` | Platform yetkilendirme akışını başlat | 🟡 IG+YT yapıldı; TikTok backend bekliyor |
+| 6 | Hesap Bağla (OAuth) | `/accounts` içinde panel | `GET /api/instagram/oauth/url`, `GET /api/youtube/oauth/url`, `GET /api/tiktok/oauth/url` | Platform yetkilendirme akışını başlat | ✅ Yapıldı |
 | 7 | AI Analiz | `/analyze` | `POST /api/openai/analyze` | Bağlı hesap için AI içgörüsü üret | ✅ Yapıldı |
 | 8 | Profil / Ayarlar | `/profile` | `GET /api/auth/profile/{username}`, `PUT /api/auth/change-password` | Profil görüntüleme, şifre değiştirme | ✅ Yapıldı |
 | 9 | Admin Paneli | `/admin` | `GET /api/admin/users`, `GET /api/admin/inquireUser/{userId}` | (ADMIN) kullanıcı listeleme/detay | ✅ Yapıldı |
@@ -26,9 +26,9 @@ ve geliştirme sırasını tanımlar. Genel teknoloji kararları için
    yönlendiren guard (`(protected)` route grubu + `AuthGuard`); ortak `Header`.
 3. **Sosyal Hesaplar (`/accounts`)** ✅ — Listeleme + sil + sync (tekil/tümü).
    Manuel ekleme (`POST /api/social-media`) formu da burada.
-4. **Hesap Bağla (OAuth)** 🟡 — Instagram/YouTube butonları `/accounts`
-   içindeki panelde hazır; TikTok, backend'deki yol tutarsızlığı çözülene
-   kadar devre dışı (aşağıdaki "OAuth Notları"na göre).
+4. **Hesap Bağla (OAuth)** ✅ — Instagram, YouTube ve TikTok butonları
+   `/accounts` panelinde yer alır. Callback, bağlantı sonucunu frontend'e
+   yönlendirir ve hesap listesi yenilenir.
 5. **AI Analiz (`/analyze`)** ✅ — Prompt gönder, dönen analizi göster
    (uzun sürebileceği için loading state; hesabı backend otomatik seçtiği
    için sadece prompt gönderilir).
@@ -47,19 +47,13 @@ Bu akış, backend'in mevcut yapısına göre en dikkat gerektiren kısım:
   Frontend `response.authUrl` alanını okumalı.
   > ✅ `src/lib/api/social.ts` `OAuthUrlResponse { authUrl }` tipine göre
   > düzeltildi.
-- **Backend callback'i frontend'e geri yönlendirmiyor.** Örneğin Instagram
-  callback'i düz metin döndürüyor: `"Instagram account linked for user: {state}"`.
-  Yani kullanıcı OAuth sonrası backend URL'inde kalıyor.
-  > Karar gerekiyor: Backend, callback sonunda frontend'e (örn.
-  > `/accounts?connected=instagram`) redirect edecek şekilde güncellenmeli;
-  > aksi halde frontend bağlanma sonucunu gösteremez. Backend değişikliği
-  > yapılana kadar frontend "bağla" butonu sadece yönlendirir, sonucu
-  > `/accounts` yeniden yüklenince (listedeki hesaptan) doğrular.
-- **TikTok yol tutarsızlığı.** Controller `@RequestMapping`'i `api/v1/tiktok/oauth`
-  iken `application.properties`'teki redirect-uri `/api/tiktok/oauth/callback`.
-  TikTok bağlama geliştirmeden önce backend'de netleştirilmeli.
-- **`state` parametresi** kullanıcı adını taşıyor; OAuth başlatılırken kullanıcı
-  giriş yapmış olmalı (aksi halde `anonymous` olarak gider).
+- **Backend callback'i frontend'e geri yönlendirir.** Başarı veya hata sonrası
+  kullanıcı `/accounts?oauth={platform}&status={success|error}` adresine döner;
+  frontend sonucu gösterir ve başarılı durumda hesap listesini yeniler.
+- **TikTok endpoint'i** `/api/tiktok/oauth/url` olarak diğer sağlayıcılarla aynı
+  `{ "authUrl": "..." }` sözleşmesini kullanır.
+- **`state` parametresi** backend tarafından süreli ve tek kullanımlık tutulur;
+  OAuth başlatılırken kullanıcı giriş yapmış olmalıdır.
 
 ## AI Analiz Notu
 
@@ -71,6 +65,5 @@ Yanıt düz metin (string) olarak döner ve analiz süresi uzun olabilir (loadin
 
 ## Açık Kararlar
 
-- OAuth callback'lerinin frontend'e redirect etmesi için backend güncellenecek mi?
 - Kayıt sonrası akış: e-posta doğrulama zorunlu mu, doğrulanmadan login engelli mi?
 - Admin paneli bu frontend'e mi dahil, yoksa ayrı bir arayüz mü?

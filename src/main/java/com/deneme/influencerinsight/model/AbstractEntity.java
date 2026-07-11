@@ -29,16 +29,10 @@ public abstract class AbstractEntity {
     @Column(name = "update_date")
     private Date updateDate;
 
-    @Column(name = "status", nullable = false)
-    private Integer status;
-
     @PrePersist
     protected void onCreate() {
         if (createDate == null) {
             createDate = new Date();
-        }
-        if (status == null) {
-            status = 1;
         }
     }
 

@@ -1,7 +1,6 @@
 package com.deneme.influencerinsight.config;
 
 import com.deneme.influencerinsight.enums.RoleType;
-import com.deneme.influencerinsight.enums.Status;
 import com.deneme.influencerinsight.model.RoleEntity;
 import com.deneme.influencerinsight.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +29,6 @@ public class RoleDataInitializer implements ApplicationRunner {
 
         RoleEntity role = RoleEntity.builder()
                 .roleType(roleType)
-                .status(Status.ACTIVE.getId())
                 .build();
         roleRepository.save(role);
     }

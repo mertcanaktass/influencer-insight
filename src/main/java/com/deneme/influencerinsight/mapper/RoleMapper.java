@@ -2,7 +2,6 @@ package com.deneme.influencerinsight.mapper;
 
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.enums.RoleType;
-import com.deneme.influencerinsight.enums.Status;
 import com.deneme.influencerinsight.model.RoleEntity;
 
 public class RoleMapper {
@@ -16,7 +15,6 @@ public class RoleMapper {
         return RoleDto.builder()
                 .id(entity.getId())
                 .roleType(entity.getRoleType())
-                .status(Status.getStatusById(entity.getStatus()))
                 .build();
     }
 
@@ -25,7 +23,6 @@ public class RoleMapper {
         return RoleEntity.builder()
                 .id(roleDto.getId())
                 .roleType(roleDto.getRoleType())
-                .status(roleDto.getStatus().getId())
                 .build();
     }
 }

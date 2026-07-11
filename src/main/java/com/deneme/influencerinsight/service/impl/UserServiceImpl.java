@@ -3,7 +3,7 @@ package com.deneme.influencerinsight.service.impl;
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.RoleType;
-import com.deneme.influencerinsight.enums.Status;
+import com.deneme.influencerinsight.enums.UserStatus;
 import com.deneme.influencerinsight.exception.UserAlreadyExistsException;
 import com.deneme.influencerinsight.mapper.UserMapper;
 import com.deneme.influencerinsight.model.UserEntity;
@@ -92,8 +92,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse register(RegisterRequest request) {
-        if (existsByUsername(request.getUsername())) {
-            throw new UserAlreadyExistsException("Username already exists: " + request.getUsername());
+        if (existsByUsername(request.getUsername())
+                || userRepository.existsByEmailIgnoreCase(request.getEmail())) {
+            throw new UserAlreadyExistsException("Username or email address is already registered.");
         }
 
         String token = UUID.randomUUID().toString();
@@ -105,8 +106,7 @@ public class UserServiceImpl implements UserService {
                 .emailVerified(false)
                 .verificationToken(token)
                 .verificationTokenExpiresAt(Instant.now().plusSeconds(verificationTokenTtlSeconds))
-                .status(Status.PASSIVE)
-                .status(Status.getStatusByShortCode("passive")) // Kullanıcı kayıt olduğunda statu 0 (pasif)
+                .accountStatus(UserStatus.PENDING_VERIFICATION)
                 .createDate(new Date())
                 .build();
 
@@ -119,8 +119,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse registerAdminUser(RegisterRequest request) {
-        if (existsByUsername(request.getUsername())) {
-            throw new UserAlreadyExistsException("Username already exists: " + request.getUsername());
+        if (existsByUsername(request.getUsername())
+                || userRepository.existsByEmailIgnoreCase(request.getEmail())) {
+            throw new UserAlreadyExistsException("Username or email address is already registered.");
         }
 
         UserDto userDto = UserDto.builder()
@@ -128,7 +129,7 @@ public class UserServiceImpl implements UserService {
                 .password(request.getPassword())
                 .email(request.getEmail())
                 .emailVerified(true)
-                .status(Status.ACTIVE)
+                .accountStatus(UserStatus.ACTIVE)
                 .build();
 
         RoleDto adminRoleDto = roleService.getRoleByType(RoleType.ROLE_ADMIN);
@@ -236,7 +237,7 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setEmailVerified(true);
-        user.setStatus(1); // Kullanıcı eğer email doğrulamasını başarılı şekilde yaptıysa statu 1'e (aktif) alınır.
+        user.setAccountStatus(UserStatus.ACTIVE);
         user.setVerificationToken(null);
         user.setVerificationTokenExpiresAt(null);
         userRepository.save(user);

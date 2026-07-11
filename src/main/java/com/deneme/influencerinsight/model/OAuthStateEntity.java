@@ -1,14 +1,7 @@
 package com.deneme.influencerinsight.model;
 
 import com.deneme.influencerinsight.enums.SocialMediaPlatform;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,7 +9,7 @@ import lombok.Setter;
 import java.time.Instant;
 
 @Entity
-@Table(name = "oauth_state")
+@Table(name = "oauth_state", indexes = @Index(name = "idx_oauth_state_expires_at", columnList = "expires_at"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,8 +22,9 @@ public class OAuthStateEntity {
     @Column(nullable = false, unique = true, length = 128)
     private String state;
 
-    @Column(nullable = false)
-    private String username;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private UserEntity user;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Date;
 
 public interface TokenBlacklistRepository extends JpaRepository<TokenBlacklistEntity, Long> {
-    boolean existsByToken(String token);
+    boolean existsByTokenHash(String tokenHash);
 
     void deleteByExpirationDateBefore(Date expirationDate);
 }
