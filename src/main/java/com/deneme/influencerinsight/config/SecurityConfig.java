@@ -59,6 +59,7 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/refresh",
                                 "/api/auth/verify-email",
+                                "/api/auth/resend-verification",
                                 "/api/youtube/oauth/callback",
                                 "/api/instagram/oauth/callback",
                                 "/api/tiktok/oauth/callback"

@@ -4,6 +4,7 @@ import com.deneme.influencerinsight.enums.OperationType;
 import com.deneme.influencerinsight.rest.requests.LoginRequest;
 import com.deneme.influencerinsight.rest.requests.PasswordChangeRequest;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
+import com.deneme.influencerinsight.rest.requests.ResendVerificationRequest;
 import com.deneme.influencerinsight.rest.requests.TokenRefreshRequest;
 import com.deneme.influencerinsight.rest.responses.AbstractResponse;
 import com.deneme.influencerinsight.rest.responses.JwtResponse;
@@ -83,5 +84,11 @@ public class AuthController {
     public ResponseEntity<String> verifyEmail(@RequestParam String token) {
         userService.verifyUserEmail(token);
         return ResponseEntity.ok("Email verified successfully!");
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<String> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+        userService.resendVerificationEmail(request.getUsername());
+        return ResponseEntity.ok("If the account exists and is not verified, a verification email has been sent.");
     }
 }

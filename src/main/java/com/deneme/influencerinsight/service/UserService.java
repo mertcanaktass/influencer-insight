@@ -63,4 +63,6 @@ public interface UserService {
     java.util.Map<String, Object> exportUserData(String username);
 
     void deleteUserAccount(String username, String currentPassword);
+
+    void resendVerificationEmail(String username);
 }

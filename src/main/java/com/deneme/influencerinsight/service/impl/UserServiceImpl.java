@@ -225,6 +225,21 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public void resendVerificationEmail(String username) {
+        // Kullanıcı adı taraması yapılmasını engellemek için kullanıcı yoksa
+        // veya zaten doğrulanmışsa da sessizce başarılı dönülür.
+        userRepository.findByUsername(username)
+                .filter(user -> !user.isEmailVerified())
+                .ifPresent(user -> {
+                    String token = UUID.randomUUID().toString();
+                    user.setVerificationToken(token);
+                    user.setVerificationTokenExpiresAt(Instant.now().plusSeconds(verificationTokenTtlSeconds));
+                    userRepository.save(user);
+                    emailService.sendVerificationEmail(user.getEmail(), token);
+                });
+    }
+
+    @Override
     public void verifyUserEmail(String token) {
         UserEntity user = userRepository.findByVerificationToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid or expired token."));
