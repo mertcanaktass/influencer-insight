@@ -4,59 +4,31 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.ContentCachingRequestWrapper;
-import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Enumeration;
 
 @Component
+@Slf4j
 public class LoggingFilter extends OncePerRequestFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggingFilter.class);
-
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        long startTime = System.nanoTime();
 
-        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
-        ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
-
-        filterChain.doFilter(wrappedRequest, wrappedResponse);
-
-        logRequest(wrappedRequest);
-        logResponse(wrappedResponse);
-
-        wrappedResponse.copyBodyToResponse();
-    }
-
-    private void logRequest(ContentCachingRequestWrapper request) {
-        StringBuilder headers = new StringBuilder();
-        Enumeration<String> headerNames = request.getHeaderNames();
-
-        while (headerNames.hasMoreElements()) {
-            String name = headerNames.nextElement();
-            String value = request.getHeader(name);
-            headers.append(name).append(": ").append(value).append("; ");
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            long durationMillis = (System.nanoTime() - startTime) / 1_000_000;
+            log.info("HTTP {} {} completed with status {} in {} ms",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    response.getStatus(),
+                    durationMillis);
         }
-
-        String body = new String(request.getContentAsByteArray(), StandardCharsets.UTF_8);
-
-        log.info("📥 REQUEST\n➡️ [{}] {}\n🔑 Headers: {}\n📦 Body: {}",
-                request.getMethod(),
-                request.getRequestURI(),
-                headers,
-                body);
-    }
-
-    private void logResponse(ContentCachingResponseWrapper response) {
-        String body = new String(response.getContentAsByteArray(), StandardCharsets.UTF_8);
-
-        log.info("📤 RESPONSE\n⬅️ Status: {}\n📦 Body: {}", response.getStatus(), body);
     }
 }

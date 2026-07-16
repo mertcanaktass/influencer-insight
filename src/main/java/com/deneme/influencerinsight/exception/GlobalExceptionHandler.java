@@ -1,54 +1,125 @@
 package com.deneme.influencerinsight.exception;
 
-import jakarta.persistence.EntityNotFoundException;
+import com.deneme.influencerinsight.rest.responses.ApiErrorResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.HashMap;
+import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserAlreadyExistsException.class)
-    public ResponseEntity<Map<String, String>> handleUserAlreadyExists(UserAlreadyExistsException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    public ResponseEntity<ApiErrorResponse> handleUserAlreadyExists(UserAlreadyExistsException ex) {
+        return error(HttpStatus.CONFLICT, "USER_ALREADY_EXISTS", ex.getMessage());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", ex.getMessage());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
-        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
+    public ResponseEntity<ApiErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        return error(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "You do not have permission to perform this action.");
     }
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleEntityNotFound(EntityNotFoundException ex) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    @ExceptionHandler(EmailVerificationRequiredException.class)
+    public ResponseEntity<ApiErrorResponse> handleEmailVerificationRequired(EmailVerificationRequiredException ex) {
+        return error(HttpStatus.FORBIDDEN, "EMAIL_VERIFICATION_REQUIRED",
+                "E-posta adresini doğrulaman gerekiyor.");
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiErrorResponse> handleAuthentication(AuthenticationException ex) {
+        return error(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Kullanıcı adı veya şifre hatalı.");
+    }
+
+    @ExceptionHandler(OpenAiException.class)
+    public ResponseEntity<ApiErrorResponse> handleOpenAi(OpenAiException ex) {
+        log.warn("OpenAI request failed", ex);
+        if (isRateLimited(ex.getCause())) {
+            return error(HttpStatus.TOO_MANY_REQUESTS, "AI_PROVIDER_RATE_LIMITED",
+                    "AI service request limit has been reached. Please try again later.");
+        }
+        return error(HttpStatus.BAD_GATEWAY, "AI_SERVICE_UNAVAILABLE", "AI service is temporarily unavailable.");
+    }
+
+    @ExceptionHandler(ExternalApiException.class)
+    public ResponseEntity<ApiErrorResponse> handleExternalApi(ExternalApiException ex) {
+        log.warn("{} request failed", ex.getServiceName(), ex);
+        if (isRateLimited(ex)) {
+            return error(HttpStatus.TOO_MANY_REQUESTS, "EXTERNAL_SERVICE_RATE_LIMITED",
+                    "An external service request limit has been reached. Please try again later.");
+        }
+        return error(HttpStatus.BAD_GATEWAY, "EXTERNAL_SERVICE_UNAVAILABLE", "An external service is temporarily unavailable.");
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleRateLimitExceeded(RateLimitExceededException ex) {
+        return error(HttpStatus.TOO_MANY_REQUESTS, "ANALYSIS_RATE_LIMIT_EXCEEDED",
+                "Analysis request limit exceeded. Please try again later.");
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Database constraint violation", ex);
+        return error(HttpStatus.CONFLICT, "DATA_CONFLICT", "The request conflicts with existing data.");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(e ->
-                errors.put(e.getField(), e.getDefaultMessage()));
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ApiErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                fieldErrors.put(error.getField(), error.getDefaultMessage()));
+        return error(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed.", fieldErrors);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
-        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", ex.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+    public ResponseEntity<ApiErrorResponse> handleRuntime(RuntimeException ex) {
+        log.error("Unhandled application error", ex);
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected server error occurred.");
     }
 
-    private ResponseEntity<Map<String, String>> buildResponse(HttpStatus status, String message) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", message);
-        return new ResponseEntity<>(error, status);
+    private ResponseEntity<ApiErrorResponse> error(HttpStatus status, String code, String message) {
+        return error(status, code, message, Map.of());
+    }
+
+    private boolean isRateLimited(Throwable throwable) {
+        if (!(throwable instanceof ExternalApiException externalApiException)) {
+            return false;
+        }
+        HttpStatusCode statusCode = externalApiException.getStatusCode();
+        return statusCode != null && statusCode.value() == HttpStatus.TOO_MANY_REQUESTS.value();
+    }
+
+    private ResponseEntity<ApiErrorResponse> error(HttpStatus status,
+                                                    String code,
+                                                    String message,
+                                                    Map<String, String> fieldErrors) {
+        ApiErrorResponse response = ApiErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(status.value())
+                .code(code)
+                .message(message)
+                .fieldErrors(fieldErrors)
+                .build();
+        return ResponseEntity.status(status).body(response);
     }
 }

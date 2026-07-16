@@ -14,6 +14,5 @@ public class SocialMediaAccountResponse {
     private String username;
     private String profileUrl;
     private boolean hasAccessToken;
-    private String extraData;
     private Instant lastSyncedAt;
 }

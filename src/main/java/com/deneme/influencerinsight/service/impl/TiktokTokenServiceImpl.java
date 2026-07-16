@@ -1,16 +1,17 @@
 package com.deneme.influencerinsight.service.impl;
 
 import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
+import com.deneme.influencerinsight.integration.ExternalApiClient;
+import com.deneme.influencerinsight.security.SocialTokenCipher;
 import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
 import com.deneme.influencerinsight.service.TiktokTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClient;
+import java.net.URI;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -21,11 +22,11 @@ import java.util.Map;
 public class TiktokTokenServiceImpl implements TiktokTokenService {
 
     private final SocialMediaAccountRepository accountRepository;
+    private final ExternalApiClient externalApiClient;
+    private final SocialTokenCipher socialTokenCipher;
 
-    private final RestClient rest = RestClient.create();
-
-    @Value( "#{new Integer('${tiktok.tokenRefreshWindowMinutes}')}")
-    private Integer tokenRefreshWindowMinutes;
+    @Value("${tiktok.token-refresh-window-minutes:5}")
+    private long tokenRefreshWindowMinutes;
 
     @Value("${tiktok.client-key}")
     private String clientKey;
@@ -42,13 +43,16 @@ public class TiktokTokenServiceImpl implements TiktokTokenService {
             throw new IllegalArgumentException("Account cannot be null.");
         }
 
-        var window = Duration.ofMinutes(tokenRefreshWindowMinutes != null ? tokenRefreshWindowMinutes : 5);
-        var now = Instant.now();
-        if (account.getTokenExpiresAt().isAfter(now.plus(window))) {
-            return account.getAccessToken();
+        Instant expiresAt = account.getTokenExpiresAt();
+        Instant now = Instant.now();
+        if (expiresAt != null && expiresAt.isAfter(now.plus(Duration.ofMinutes(tokenRefreshWindowMinutes)))) {
+            String accessToken = socialTokenCipher.decrypt(account.getAccessToken());
+            if (accessToken != null && !accessToken.isBlank()) {
+                return accessToken;
+            }
         }
 
-        String refreshToken = account.getRefreshToken();
+        String refreshToken = socialTokenCipher.decrypt(account.getRefreshToken());
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new IllegalStateException("Missing refresh token for Tiktok account.");
         }
@@ -60,12 +64,12 @@ public class TiktokTokenServiceImpl implements TiktokTokenService {
         form.add("grant_type", "refresh_token");
 
 
-        Map<String, Object> resp = rest.post()
-                .uri(baseUri + "/v2/oauth/token/")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(form)
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {});
+        Map<String, Object> resp = externalApiClient.postForm(
+                "TikTok API",
+                URI.create(baseUri + "/v2/oauth/token/"),
+                form,
+                new ParameterizedTypeReference<>() {
+                });
 
 
         if (resp == null || resp.isEmpty()) {
@@ -73,14 +77,28 @@ public class TiktokTokenServiceImpl implements TiktokTokenService {
         }
 
         String respAccessToken = (String) resp.get("access_token");
-        String respRefreshToken = (String) resp.getOrDefault("refresh_token", account.getRefreshToken());
-        Number expiresInSec = (Number) resp.getOrDefault("expires_in", 3600);
+        String respRefreshToken = (String) resp.getOrDefault("refresh_token", refreshToken);
+        long expiresInSeconds = getLong(resp.get("expires_in"), 3600);
 
-        account.setAccessToken(respAccessToken);
-        account.setRefreshToken(respRefreshToken);
-        account.setTokenExpiresAt(Instant.now().plusSeconds(expiresInSec.longValue()));
+        account.setAccessToken(socialTokenCipher.encrypt(respAccessToken));
+        account.setRefreshToken(socialTokenCipher.encrypt(respRefreshToken));
+        account.setTokenExpiresAt(Instant.now().plusSeconds(expiresInSeconds));
 
         accountRepository.save(account);
         return respAccessToken;
+    }
+
+    private long getLong(Object value, long defaultValue) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof String stringValue && !stringValue.isBlank()) {
+            try {
+                return Long.parseLong(stringValue);
+            } catch (NumberFormatException ignored) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
     }
 }

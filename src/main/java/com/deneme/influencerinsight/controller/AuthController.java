@@ -4,6 +4,7 @@ import com.deneme.influencerinsight.enums.OperationType;
 import com.deneme.influencerinsight.rest.requests.LoginRequest;
 import com.deneme.influencerinsight.rest.requests.PasswordChangeRequest;
 import com.deneme.influencerinsight.rest.requests.RegisterRequest;
+import com.deneme.influencerinsight.rest.requests.ResendVerificationRequest;
 import com.deneme.influencerinsight.rest.requests.TokenRefreshRequest;
 import com.deneme.influencerinsight.rest.responses.AbstractResponse;
 import com.deneme.influencerinsight.rest.responses.JwtResponse;
@@ -11,6 +12,7 @@ import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.security.JwtUtil;
 import com.deneme.influencerinsight.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +33,7 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<AbstractResponse<UserResponse>> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<AbstractResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
         UserResponse registeredUser = userService.register(request);
         AbstractResponse<UserResponse> response = new AbstractResponse<>();
         response.setOperationType(OperationType.CREATE_CUSTOMER_USER);
@@ -47,13 +49,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request) {
         JwtResponse jwtResponse = userService.login(request, authenticationManager, jwtUtil);
         return ResponseEntity.ok(jwtResponse);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<JwtResponse> refreshToken(@RequestBody TokenRefreshRequest request) {
+    public ResponseEntity<JwtResponse> refreshToken(@Valid @RequestBody TokenRefreshRequest request) {
         JwtResponse response = userService.refreshToken(request, jwtUtil);
         return ResponseEntity.ok(response);
     }
@@ -73,7 +75,7 @@ public class AuthController {
     }
 
     @PutMapping("/change-password")
-    public ResponseEntity<String> changePassword(@RequestBody PasswordChangeRequest request, Principal principal) {
+    public ResponseEntity<String> changePassword(@Valid @RequestBody PasswordChangeRequest request, Principal principal) {
         userService.changePassword(principal.getName(), request);
         return ResponseEntity.ok("Password updated successfully");
     }
@@ -82,5 +84,11 @@ public class AuthController {
     public ResponseEntity<String> verifyEmail(@RequestParam String token) {
         userService.verifyUserEmail(token);
         return ResponseEntity.ok("Email verified successfully!");
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<String> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+        userService.resendVerificationEmail(request.getUsername());
+        return ResponseEntity.ok("If the account exists and is not verified, a verification email has been sent.");
     }
 }

@@ -19,8 +19,8 @@ public class RefreshTokenEntity extends AbstractEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 1000)
-    private String token;
+    @Column(name = "token", nullable = false, unique = true, length = 64)
+    private String tokenHash;
 
     @Column(nullable = false)
     private Instant expiryDate;

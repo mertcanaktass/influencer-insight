@@ -2,6 +2,7 @@ package com.deneme.influencerinsight.service;
 
 import com.deneme.influencerinsight.rest.requests.SocialMediaAccountRequest;
 import com.deneme.influencerinsight.rest.responses.SocialMediaAccountResponse;
+import com.deneme.influencerinsight.rest.responses.SocialMediaSyncResponse;
 
 import java.util.List;
 
@@ -12,7 +13,7 @@ public interface SocialMediaAccountService {
 
     void deleteAccount(String username, Long accountId);
 
-    SocialMediaAccountResponse syncAccount(String username, Long accountId);
+    SocialMediaSyncResponse syncAccount(String username, Long accountId);
 
-    List<SocialMediaAccountResponse> syncAll(String username);
+    List<SocialMediaSyncResponse> syncAll(String username);
 }

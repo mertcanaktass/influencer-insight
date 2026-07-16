@@ -1,16 +1,12 @@
 package com.deneme.influencerinsight.service;
 
-import com.deneme.influencerinsight.dto.RefreshTokenDto;
 import com.deneme.influencerinsight.model.UserEntity;
 
-import java.util.Optional;
-
 public interface RefreshTokenService {
-    RefreshTokenDto createRefreshToken(UserEntity user);
 
-    Optional<RefreshTokenDto> findByToken(String token);
+    String createRefreshToken(UserEntity user);
 
-    boolean isTokenExpired(RefreshTokenDto token);
+    UserEntity consumeRefreshToken(String token);
 
-    void deleteByUser(UserEntity user);
+    void revokeTokensForUser(UserEntity user);
 }

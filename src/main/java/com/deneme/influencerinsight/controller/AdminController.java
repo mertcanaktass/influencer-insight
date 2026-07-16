@@ -6,6 +6,7 @@ import com.deneme.influencerinsight.rest.responses.AbstractResponse;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 import com.deneme.influencerinsight.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +31,7 @@ public class AdminController {
             description = "Register Admin API is designed for creating new Admin user, this API only works from Admin panel!",
             tags = "Admin User Management"
     )
-    public ResponseEntity<AbstractResponse<UserResponse>> registerAdmin(@RequestBody RegisterRequest request) {
+    public ResponseEntity<AbstractResponse<UserResponse>> registerAdmin(@Valid @RequestBody RegisterRequest request) {
         UserResponse registeredUser = userService.registerAdminUser(request);
         AbstractResponse<UserResponse> response = new AbstractResponse<>();
         response.setOperationType(OperationType.CREATE_ADMIN_USER);

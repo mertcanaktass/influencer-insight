@@ -1,7 +1,13 @@
 package com.deneme.influencerinsight.controller;
 
+import com.deneme.influencerinsight.enums.SocialMediaPlatform;
+import com.deneme.influencerinsight.service.OAuthStateService;
+import com.deneme.influencerinsight.service.OAuthRedirectService;
 import com.deneme.influencerinsight.service.YoutubeOAuthService;
+import com.deneme.influencerinsight.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,22 +20,33 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/youtube/oauth")
 @RequiredArgsConstructor
+@Slf4j
 public class YoutubeConnectController {
 
     private final YoutubeOAuthService youtubeOAuthService;
+    private final OAuthStateService oauthStateService;
+    private final OAuthRedirectService oauthRedirectService;
+    private final UserService userService;
 
     @GetMapping("/url")
     public ResponseEntity<Map<String, String>> getAuthorizationUrl(Authentication authentication) {
-        String state = authentication.getName(); // basit test için
+        userService.requireSocialConnectionConsent(authentication.getName());
+        String state = oauthStateService.createState(authentication.getName(), SocialMediaPlatform.YOUTUBE);
         String url = youtubeOAuthService.buildAuthorizationUrl(state);
         return ResponseEntity.ok(Map.of("authUrl", url));
     }
 
     @GetMapping("/callback")
-    public ResponseEntity<String> callback(@RequestParam("code") String code,
-                                           @RequestParam("state") String state) {
-        youtubeOAuthService.exchangeCodeAndSaveAccount(state, code);
-        return ResponseEntity.ok("YouTube account linked for user: " + state);
+    public void callback(@RequestParam("code") String code,
+                         @RequestParam("state") String state,
+                         HttpServletResponse response) throws java.io.IOException {
+        try {
+            String username = oauthStateService.consumeState(state, SocialMediaPlatform.YOUTUBE);
+            youtubeOAuthService.exchangeCodeAndSaveAccount(username, code);
+            oauthRedirectService.redirectToAccounts(response, SocialMediaPlatform.YOUTUBE, true);
+        } catch (RuntimeException exception) {
+            log.warn("YouTube OAuth callback failed", exception);
+            oauthRedirectService.redirectToAccounts(response, SocialMediaPlatform.YOUTUBE, false);
+        }
     }
 }
-

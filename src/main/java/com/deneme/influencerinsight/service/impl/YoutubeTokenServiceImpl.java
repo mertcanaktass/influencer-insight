@@ -3,6 +3,8 @@ package com.deneme.influencerinsight.service.impl;
 import com.deneme.influencerinsight.model.SocialMediaAccountEntity;
 import com.deneme.influencerinsight.repository.SocialMediaAccountRepository;
 import com.deneme.influencerinsight.service.YoutubeTokenService;
+import com.deneme.influencerinsight.integration.ExternalApiClient;
+import com.deneme.influencerinsight.security.SocialTokenCipher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -15,8 +17,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.deneme.influencerinsight.util.HttpUtils.postForm;
-
 @Service
 @RequiredArgsConstructor
 public class YoutubeTokenServiceImpl implements YoutubeTokenService {
@@ -28,6 +28,8 @@ public class YoutubeTokenServiceImpl implements YoutubeTokenService {
     private String clientSecret;
 
     private final SocialMediaAccountRepository accountRepository;
+    private final ExternalApiClient externalApiClient;
+    private final SocialTokenCipher socialTokenCipher;
 
     @Override
     public String ensureValidAccessToken(SocialMediaAccountEntity account) {
@@ -39,14 +41,14 @@ public class YoutubeTokenServiceImpl implements YoutubeTokenService {
         if (expiresAt != null) {
             Instant safety = Instant.now().plusSeconds(60);
             if (expiresAt.isAfter(safety)) {
-                String current = account.getAccessToken();
+                String current = socialTokenCipher.decrypt(account.getAccessToken());
                 if (current != null && !current.isBlank()) {
                     return current;
                 }
             }
         }
 
-        String refreshToken = account.getRefreshToken();
+        String refreshToken = socialTokenCipher.decrypt(account.getRefreshToken());
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new IllegalStateException("Missing refresh token for YouTube account.");
         }
@@ -58,7 +60,8 @@ public class YoutubeTokenServiceImpl implements YoutubeTokenService {
                 "grant_type", "refresh_token"
         );
 
-        Map<String, Object> tokenBody = postForm(
+        Map<String, Object> tokenBody = externalApiClient.postForm(
+                "Google OAuth",
                 "https://oauth2.googleapis.com/token",
                 toFormData(form.keySet(), form),
                 new ParameterizedTypeReference<>() {
@@ -81,7 +84,7 @@ public class YoutubeTokenServiceImpl implements YoutubeTokenService {
             } catch (NumberFormatException ignored) { /* no-op */ }
         }
 
-        account.setAccessToken(newAccessToken);
+        account.setAccessToken(socialTokenCipher.encrypt(newAccessToken));
 
         Instant newExpiry = null;
         if (expiresInSeconds != null) {

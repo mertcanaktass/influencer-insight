@@ -2,7 +2,6 @@ package com.deneme.influencerinsight.mapper;
 
 import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
-import com.deneme.influencerinsight.enums.Status;
 import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.rest.responses.UserResponse;
 
@@ -31,14 +30,15 @@ public class UserMapper {
         return UserEntity.builder()
                 .username(userDto.getUsername())
                 .password(hashedPassword != null ? hashedPassword : userDto.getPassword())
-                .email(userDto.getEmail())
-                .status(userDto.getStatus().getId())
+                .email(userDto.getEmail().trim().toLowerCase(java.util.Locale.ROOT))
+                .accountStatus(userDto.getAccountStatus())
                 .createDate(userDto.getCreateDate())
                 .createUserId(Objects.nonNull(userDto.getCreateUserId()) ? userDto.getCreateUserId() : null)
                 .updateUserId(Objects.nonNull(userDto.getUpdateUserId()) ? userDto.getUpdateUserId() : null)
                 .updateDate(Objects.nonNull(userDto.getUpdateDate()) ? userDto.getUpdateDate() : null)
                 .emailVerified(Boolean.TRUE.equals(userDto.getEmailVerified()))
                 .verificationToken(userDto.getVerificationToken())
+                .verificationTokenExpiresAt(userDto.getVerificationTokenExpiresAt())
                 .roleEntity(roleDtoToEntity(roleDto))
                 .build();
 
@@ -49,17 +49,10 @@ public class UserMapper {
         return UserDto.builder()
                 .username(userEntity.getUsername())
                 .email(userEntity.getEmail())
-                .status(Status.getStatusById(userEntity.getStatus()))
+                .emailVerified(userEntity.isEmailVerified())
+                .accountStatus(userEntity.getAccountStatus())
                 .createDate(userEntity.getCreateDate())
                 .build();
     }
 
-    public static UserEntity userResponseToEntity(UserResponse userResponse) {
-        if (Objects.isNull(userResponse)) throw new NoSuchElementException("User Not Found!");
-        return UserEntity.builder()
-                .id(userResponse.getId())
-                .username(userResponse.getUsername())
-                .email(userResponse.getEmail())
-                .build();
-    }
 }

@@ -29,7 +29,6 @@ public class SocialMediaAccountMapper {
                 .username(entity.getUsername())
                 .profileUrl(entity.getProfileUrl())
                 .hasAccessToken(entity.getAccessToken() != null && !entity.getAccessToken().isBlank())
-                .extraData(entity.getExtraData())
                 .lastSyncedAt(entity.getLastSyncedAt())
                 .build();
     }

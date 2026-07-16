@@ -11,7 +11,17 @@ import lombok.experimental.SuperBuilder;
 import java.time.Instant;
 
 @Entity
-@Table(name = "social_media_account")
+@Table(
+        name = "social_media_account",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_social_account_owner_platform_external", columnNames = {"user_id", "platform", "external_id"}),
+                @UniqueConstraint(name = "uk_social_account_owner_platform_username", columnNames = {"user_id", "platform", "username"})
+        },
+        indexes = {
+                @Index(name = "idx_social_account_user_platform", columnList = "user_id, platform"),
+                @Index(name = "idx_social_account_external_id", columnList = "external_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -32,18 +42,19 @@ public class SocialMediaAccountEntity {
 
     private String profileUrl;
 
+    @Column(columnDefinition = "TEXT")
     private String accessToken;
 
+    @Column(columnDefinition = "TEXT")
     private String refreshToken;
 
     private Instant tokenExpiresAt;
 
     private String externalId;
 
-    @Lob
-    @Basic(fetch = FetchType.EAGER)
+    /** AI istemi oluşturmak için en güncel snapshot'ın yerel önbelleği. */
     @Column(name = "extra_data", columnDefinition = "TEXT")
-    private String extraData;   // platformdan gelen detaylı analiz için JSON verisi
+    private String extraData;
 
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
@@ -51,4 +62,7 @@ public class SocialMediaAccountEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
+
+    @Version
+    private Long version;
 }

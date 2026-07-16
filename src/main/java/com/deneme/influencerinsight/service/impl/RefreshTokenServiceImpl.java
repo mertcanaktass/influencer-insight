@@ -1,53 +1,78 @@
 package com.deneme.influencerinsight.service.impl;
 
-import com.deneme.influencerinsight.dto.RefreshTokenDto;
-import com.deneme.influencerinsight.mapper.RefreshTokenMapper;
 import com.deneme.influencerinsight.model.RefreshTokenEntity;
 import com.deneme.influencerinsight.model.UserEntity;
 import com.deneme.influencerinsight.repository.RefreshTokenRepository;
 import com.deneme.influencerinsight.service.RefreshTokenService;
+import com.deneme.influencerinsight.util.TokenHashing;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.Base64;
 
 @Service
 @RequiredArgsConstructor
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
+    private static final int TOKEN_BYTE_LENGTH = 32;
+
     private final RefreshTokenRepository refreshTokenRepository;
+    private final SecureRandom secureRandom = new SecureRandom();
 
-    @Value("${jwt.refresh.token.expiry}")
-    private Long refreshTokenExpiry;
+    @Value("${auth.refresh-token.ttl-seconds:604800}")
+    private long refreshTokenTtlSeconds;
 
     @Override
-    public RefreshTokenDto createRefreshToken(UserEntity user) {
-        RefreshTokenEntity token = RefreshTokenEntity.builder()
+    @Transactional
+    public String createRefreshToken(UserEntity user) {
+        revokeTokensForUser(user);
+
+        String token = generateToken();
+        RefreshTokenEntity refreshToken = RefreshTokenEntity.builder()
                 .user(user)
-                .token(UUID.randomUUID().toString())
-                .expiryDate(Instant.now().plusSeconds(refreshTokenExpiry))
+                .tokenHash(TokenHashing.sha256(token))
+                .expiryDate(Instant.now().plusSeconds(refreshTokenTtlSeconds))
                 .build();
-        token = refreshTokenRepository.save(token);
-        return RefreshTokenMapper.entityToRefreshTokenDto(token);
+        refreshTokenRepository.save(refreshToken);
+        return token;
     }
 
     @Override
-    public Optional<RefreshTokenDto> findByToken(String token) {
-        return refreshTokenRepository.findByToken(token)
-                .map(RefreshTokenMapper::entityToRefreshTokenDto);
+    @Transactional
+    public UserEntity consumeRefreshToken(String token) {
+        RefreshTokenEntity refreshToken = refreshTokenRepository.findByTokenHash(TokenHashing.sha256(token))
+                .orElseThrow(() -> new AccessDeniedException("Invalid refresh token."));
+
+        refreshTokenRepository.delete(refreshToken);
+
+        if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
+            throw new AccessDeniedException("Refresh token has expired. Please log in again.");
+        }
+
+        return refreshToken.getUser();
     }
 
     @Override
-    public boolean isTokenExpired(RefreshTokenDto token) {
-        return token.getExpiryDate().isBefore(Instant.now());
-    }
-
-    @Override
-    public void deleteByUser(UserEntity user) {
+    @Transactional
+    public void revokeTokensForUser(UserEntity user) {
         refreshTokenRepository.deleteByUser(user);
     }
-}
 
+    private String generateToken() {
+        byte[] bytes = new byte[TOKEN_BYTE_LENGTH];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    @Scheduled(fixedDelayString = "${app.maintenance.cleanup-delay-ms:3600000}")
+    @Transactional
+    public void deleteExpiredTokens() {
+        refreshTokenRepository.deleteByExpiryDateBefore(Instant.now());
+    }
+}

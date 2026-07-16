@@ -3,9 +3,12 @@ package com.deneme.influencerinsight.service.impl;
 import com.deneme.influencerinsight.model.TokenBlacklistEntity;
 import com.deneme.influencerinsight.repository.TokenBlacklistRepository;
 import com.deneme.influencerinsight.service.TokenBlacklistService;
+import com.deneme.influencerinsight.util.TokenHashing;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 
@@ -23,13 +26,14 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
             return;
         }
 
-        if (!tokenBlacklistRepository.existsByToken(token)) {
+        String tokenHash = TokenHashing.sha256(token);
+        if (!tokenBlacklistRepository.existsByTokenHash(tokenHash)) {
             TokenBlacklistEntity entity = TokenBlacklistEntity.builder()
-                    .token(token)
+                    .tokenHash(tokenHash)
                     .expirationDate(expirationDate)
                     .build();
             tokenBlacklistRepository.save(entity);
-            log.info("Token blacklisted: {}", token);
+            log.info("Access token blacklisted until {}", expirationDate);
         }
     }
 
@@ -38,6 +42,12 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
         if (token == null || token.isEmpty()) {
             return false;
         }
-        return tokenBlacklistRepository.existsByToken(token);
+        return tokenBlacklistRepository.existsByTokenHash(TokenHashing.sha256(token));
+    }
+
+    @Scheduled(fixedDelayString = "${app.maintenance.cleanup-delay-ms:3600000}")
+    @Transactional
+    public void deleteExpiredTokens() {
+        tokenBlacklistRepository.deleteByExpirationDateBefore(new Date());
     }
 }

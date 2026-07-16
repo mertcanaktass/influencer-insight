@@ -2,6 +2,8 @@ package com.deneme.influencerinsight.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -27,7 +29,16 @@ public abstract class AbstractEntity {
     @Column(name = "update_date")
     private Date updateDate;
 
-    @Column(name = "status", nullable = false)
-    private Integer status;
+    @PrePersist
+    protected void onCreate() {
+        if (createDate == null) {
+            createDate = new Date();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updateDate = new Date();
+    }
 
 }

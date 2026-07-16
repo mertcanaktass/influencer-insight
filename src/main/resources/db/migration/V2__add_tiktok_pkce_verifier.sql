@@ -1,0 +1,1 @@
+ALTER TABLE oauth_state ADD COLUMN IF NOT EXISTS code_verifier VARCHAR(128);

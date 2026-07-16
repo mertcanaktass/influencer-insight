@@ -7,7 +7,7 @@ import lombok.experimental.SuperBuilder;
 import java.util.Date;
 
 @Entity
-@Table(name = "token_blacklist")
+@Table(name = "token_blacklist", indexes = @Index(name = "idx_blacklist_expiration", columnList = "expiration_date"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,8 +19,8 @@ public class TokenBlacklistEntity extends AbstractEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "token", nullable = false, unique = true, length = 1000)
-    private String token;
+    @Column(name = "token", nullable = false, unique = true, length = 64)
+    private String tokenHash;
 
     @Column(name = "expiration_date", nullable = false)
     private Date expirationDate;

@@ -1,6 +1,5 @@
 package com.deneme.influencerinsight.dto;
 
-import com.deneme.influencerinsight.enums.Status;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,5 +16,4 @@ public class AbstractDto {
     private Long createUserId;
     private Date updateDate;
     private Long updateUserId;
-    private Status status;
 }
