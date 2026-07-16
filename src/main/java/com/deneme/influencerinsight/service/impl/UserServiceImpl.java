@@ -4,6 +4,7 @@ import com.deneme.influencerinsight.dto.RoleDto;
 import com.deneme.influencerinsight.dto.UserDto;
 import com.deneme.influencerinsight.enums.RoleType;
 import com.deneme.influencerinsight.enums.Status;
+import com.deneme.influencerinsight.exception.EmailNotVerifiedException;
 import com.deneme.influencerinsight.exception.UserAlreadyExistsException;
 import com.deneme.influencerinsight.mapper.UserMapper;
 import com.deneme.influencerinsight.model.UserEntity;
@@ -146,7 +147,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found!"));
 
         if (Boolean.FALSE.equals(userDto.getEmailVerified())) {
-            throw new AccessDeniedException("You need to verify your email address.");
+            throw new EmailNotVerifiedException("You need to verify your email address.");
         }
 
         authenticationManager.authenticate(
@@ -216,6 +217,21 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
         refreshTokenService.revokeTokensForUser(user);
+    }
+
+    @Override
+    public void resendVerificationEmail(String username) {
+        // Kullanıcı adı taraması yapılmasını engellemek için kullanıcı yoksa
+        // veya zaten doğrulanmışsa da sessizce başarılı dönülür.
+        userRepository.findByUsername(username)
+                .filter(user -> !user.isEmailVerified())
+                .ifPresent(user -> {
+                    String token = UUID.randomUUID().toString();
+                    user.setVerificationToken(token);
+                    user.setVerificationTokenExpiresAt(Instant.now().plusSeconds(verificationTokenTtlSeconds));
+                    userRepository.save(user);
+                    emailService.sendVerificationEmail(user.getEmail(), token);
+                });
     }
 
     @Override

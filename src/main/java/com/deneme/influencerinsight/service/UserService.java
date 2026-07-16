@@ -46,4 +46,6 @@ public interface UserService {
     void changePassword(String username, PasswordChangeRequest request);
 
     void verifyUserEmail(String token);
+
+    void resendVerificationEmail(String username);
 }
